@@ -86,13 +86,12 @@ public class Game {
 	}
 
 	public boolean isValid(Move m) {
-		Piece p = board[m.startRow][m.startCol];
-		return p != null && p.white == whiteToMove && validMoves(m.startRow, m.startCol).contains(m);
+		return validMoves(m.startRow, m.startCol).contains(m);
 	}
 	private Set < Move > validMoves(int row, int col) {
 		Set < Move > validMoves = new HashSet < Move > ();
 		Piece a = board[row][col];
-		if(a != null) {
+		if(a != null && a.white == whiteToMove) {
 			if(a.type.equals(Piece.Type.KNIGHT)) {
 				for(int i=0; i<8; i++){
 					int x = (((i+1)%4)/2+1) * ((i/8)*-2+1);
