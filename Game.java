@@ -79,7 +79,7 @@ public class Game {
 				if (board()[i][j] != null) sb.append(board()[i][j].toString());
 				else sb.append('.');
 			}
-			sb.append(' ' + Integer.toString(i) + "\n");
+			sb.append(' ' + Integer.toString(i+1) + "\n");
 		}
 		return sb.toString();
 	}
@@ -167,14 +167,18 @@ double quiesce(double alpha, double beta) {
 				validMoves(i,j,moves);
 		return moves;
 	}
+	
+	private void log(String str){
+		System.out.println(str);
+	}
 	private Set<Move> validMoves(int row, int col, Set<Move> validMoves) {
 		Piece a = board()[row][col];
 		if(a != null && a.white == whiteToMove) {
 			if(a.type.equals(Piece.Type.KNIGHT)) {
 				for(int i=0; i<8; i++){
-					int x = (((i+1)%4)/2+1) * ((i/8)*-2+1);
-					int y = (((i-1)%4)/2+1) * (((i-2)/8)*-2+1);
-					int r = (row + x) % 16;
+					int x = (((i+1)%4)/2+1) * ((i/4)*-2+1);
+					int y = (((i+7)%4)/2+1) * ((((i+6)%8)/4)*-2+1);
+					int r = (row + x + 16) % 16;
 					int c = col + y;
 					if(c >= 0 && c < 4
 						&& (board()[r][c] == null || board()[r][c].white != a.white))
@@ -202,6 +206,8 @@ double quiesce(double alpha, double beta) {
 						}
 			}
 		}
+		for(Move m : validMoves)
+			System.out.println(m.toString());
 		return validMoves;
 	}
 }
@@ -249,10 +255,10 @@ class Move {
 	public static Move parse(String move) {
 		String[] parts = move.split("-");
 		return new Move(
+		Integer.parseInt(parts[0].substring(1))-1,
 		parts[0].charAt(0) - 'a',
-		Integer.parseInt(parts[0].substring(1)),
-		parts[1].charAt(0) - 'a',
-		Integer.parseInt(parts[1].substring(1)));
+		Integer.parseInt(parts[1].substring(1))-1,
+		parts[1].charAt(0) - 'a');
 	}
 
 	public Move(int startRow, int startCol, int endRow, int endCol) {
@@ -262,7 +268,34 @@ class Move {
 		this.endCol = endCol;
 	}
 
+	@Override	
+	public boolean equals(Object obj){
+		System.out.println("asdf");
+		if(obj instanceof Move)
+			return equals((Move)obj);
+		else
+			return false;
+	}
+
 	public boolean equals(Move m) {
+		System.out.println("asdfasdf");
 		return startRow == m.startRow && startCol == m.startCol && endRow == m.endRow && endCol == m.endCol;
+	}
+	
+	@Override
+	public int hashCode(){
+		int hash = startCol;
+		hash = (hash << 4) + startRow;
+		hash = (hash << 2) + endCol;
+		hash = (hash << 4) + endRow;
+		System.out.println(toString() + hash);
+		return hash;
+	}
+	
+	public String toString(){
+		return String.valueOf((char)(startCol + 'a')) + 
+			Integer.toString(startRow + 1) + "-" +
+			String.valueOf((char)(endCol + 'a'))+
+			Integer.toString(endRow + 1);
 	}
 }
