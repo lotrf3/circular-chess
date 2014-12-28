@@ -104,7 +104,7 @@ public class Game {
 	
 	private Move bestMove(){
 		HashMap<Double, Move> moves = new HashMap<Double, Move>();
-		double score = alphabeta(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, 5, moves);
+		double score = alphaBeta(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, 5, moves);
 		return moves.get(score);
 	}
 	
@@ -112,7 +112,7 @@ double alphaBeta( double alpha, double beta, int depthleft, Map<Double, Move> mo
 	if(depthleft == 0) return quiesce( alpha, beta );
 	for (Move m : allValidMoves()) {
 		move(m);
-		score = -alphaBeta( -beta, -alpha, depthleft - 1, null);
+		double score = -alphaBeta( -beta, -alpha, depthleft - 1, null);
 		if(moves != null)
 			moves.put(score,m);
 		history.pop();
@@ -134,7 +134,7 @@ double quiesce(double alpha, double beta) {
     for(Move m : allValidMoves())  {
     	if(board()[m.endRow][m.endCol] != null){
 	        move(m);
-	        score = -quiesce(-beta, -alpha);
+	        double score = -quiesce(-beta, -alpha);
 	        history.pop();
 	 
 	        if( score >= beta )
@@ -177,7 +177,7 @@ double quiesce(double alpha, double beta) {
 					int r = (row + x) % 16;
 					int c = col + y;
 					if(c >= 0 && c < 4
-						&& (board()[r][c] == null || board()[r][c].white != a.white)
+						&& (board()[r][c] == null || board()[r][c].white != a.white))
 						validMoves.add(new Move(row, col, r, c));
 				}
 			} else {
@@ -186,7 +186,7 @@ double quiesce(double alpha, double beta) {
 					for (int j = -1; j <= 1; j++)
 						if(i != j && j != 0
 							&& (!a.type.equals(Piece.Type.BISHOP) || (i+j)%2==0)
-							&& (!a.type.equal(Piece.Type.ROOK) || (i+j)%2==1) {
+							&& (!a.type.equals(Piece.Type.ROOK) || (i+j)%2==1)) {
 							range = 16;
 							if(a.type.equals(Piece.Type.KING))
 								range = 1;
@@ -228,8 +228,8 @@ class Piece {
 		}
 	}
 
-	Type type;
-	boolean white;
+	public Type type;
+	public boolean white;
 	public Piece(Type type, boolean white) {
 		this.type = type;
 		this.white = white;
@@ -240,7 +240,7 @@ class Piece {
 		return str;
 	}
 	public double value(){
-		return white ? type.value() : -type.value();
+		return white ? type.value : -type.value;
 	}
 }
 
