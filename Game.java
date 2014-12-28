@@ -16,9 +16,15 @@ public class Game {
 		boolean isEnded = false;
 		while (!isEnded) {
 			System.out.print(g.printBoard());
-			isEnded = g.move(Move.parse(br.readLine()));
+			Move m = Move.parse(br.readLine());
+			if(!g.isValid(m))
+				System.out.println("Invalid move");
+			else
+				isEnded = g.move(m);
 		}
+		
 	}
+	boolean whiteToMove = true;
 	Piece[][] board = {
 		{
 			new Piece(Piece.Type.KING, true), new Piece(Piece.Type.BISHOP, true), new Piece(Piece.Type.KNIGHT, true), new Piece(Piece.Type.ROOK, true)
@@ -75,34 +81,49 @@ public class Game {
 		boolean res = dest == null ? false : dest.type.equals(Piece.Type.KING);
 		board[move.endRow][move.endCol] = board[move.startRow][move.startCol];
 		board[move.startRow][move.startCol] = null;
+		whiteToMove = !whiteToMove;
 		return res;
 	}
 
 	public boolean isValid(Move m) {
-		return validMoves(m.startRow, m.startCol).contains(m);
+		Piece p = board[m.startRow][m.startCol];
+		return p != null && p.white == whiteToMove && validMoves(m.startRow, m.startCol).contains(m);
 	}
-	public Set < Move > validMoves(int row, int col) {
+	private Set < Move > validMoves(int row, int col) {
 		Set < Move > validMoves = new HashSet < Move > ();
 		Piece a = board[row][col];
-		boolean[][] dirs = {
-			{
-				true, true, true
-			}, {
-				true, false, true
-			}, {
-				true, true, true
+		if(a != null) {
+			if(a.type.equals(Piece.Type.KNIGHT)) {
+				for(int i=0; i<8; i++){
+					int x = (((i+1)%4)/2+1) * ((i/8)*-2+1);
+					int y = (((i-1)%4)/2+1) * (((i-2)/8)*-2+1);
+					int r = (row + x) % 16;
+					int c = col + y;
+					if(c >= 0 && c < 4
+						&& (board[r][c] == null || board[r][c].white != a.white)
+						validMoves.add(new Move(row, col, r, c));
+				}
+			} else {
+				int range;
+				for (int i = -1; i <= 1; i++)
+					for (int j = -1; j <= 1; j++)
+						if(i != j && j != 0
+							&& (!a.type.equals(Piece.Type.BISHOP) || (i+j)%2==0)
+							&& (!a.type.equal(Piece.Type.ROOK) || (i+j)%2==1) {
+							range = 16;
+							if(a.type.equals(Piece.Type.KING))
+								range = 1;
+							for (int k = 0; k < 16; k++) {
+								int r = (row + i * k) % 16;
+								int c = col + j * k;
+								if (c < 0 || c >= 4) break;
+									Piece b = board[r][c];
+								if (b != null && b.white == a.white) break;
+									validMoves.add(new Move(row, col, r, c));
+								if (b != null) break;
+							}
+						}
 			}
-		};
-		for (int i = 0; i < 3; i++)
-		for (int j = 0; j < 3; j++)
-		if (dirs[i][j]) for (int k = 0; k < 16; k++) {
-			int r = (row + (i - 1) * k) % 16;
-			int c = col + (j - 1) * k;
-			if (c < 0 || c >= 4) break;
-			Piece b = board[r][c];
-			if (b != null && b.white == a.white) break;
-			validMoves.add(new Move(row, col, r, c));
-			if (b != null) break;
 		}
 		return validMoves;
 	}
