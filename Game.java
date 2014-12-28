@@ -86,10 +86,17 @@ public class Game {
 	}
 
 	public boolean isValid(Move m) {
-		return validMoves(m.startRow, m.startCol).contains(m);
+		return validMoves(m.startRow, m.startCol, new HashSet<Move>()).contains(m);
 	}
-	private Set < Move > validMoves(int row, int col) {
-		Set < Move > validMoves = new HashSet < Move > ();
+	
+	private Set<Move> allValidMoves(){
+		Set<Move> moves = new HashSet<Move>();
+		for(int i=0; i<board.length; i++)
+			for(int j=0; j<board[i].length; j++)
+				validMoves(i,j,moves);
+		return moves;
+	}
+	private Set<Move> validMoves(int row, int col, Set<Move> validMoves) {
 		Piece a = board[row][col];
 		if(a != null && a.white == whiteToMove) {
 			if(a.type.equals(Piece.Type.KNIGHT)) {
