@@ -174,6 +174,24 @@ double quiesce(double alpha, double beta) {
 	private Set<Move> validMoves(int row, int col, Set<Move> validMoves) {
 		Piece a = board()[row][col];
 		if(a != null && a.white == whiteToMove) {
+			if(a.type.equals(Piece.Type.PAWN)){
+				int r = (row/8) * 2 - 1;
+				if(a.white)
+					r*=-1;
+				log(r + " " + row);
+				if(board()[row + r][col] == null)
+					validMoves.add(new Move(row, col, row + r, col));
+				if(col > 0 && board()[row+r][col-1] != null && board()[row+r][col-1].white != a.white)
+					validMoves.add(new Move(row, col, row + r, col-1));
+				if(col < 3 && board()[row+r][col+1] != null && board()[row+r][col+1].white != a.white)
+					validMoves.add(new Move(row, col, row + r, col+1));
+				//TODO add en passant
+				if(((a.white && (row == 1 || row == 14))
+					|| (!a.white && (row == 6 || row == 9)))
+					&&(board()[row + 2*r][col] == null))
+						validMoves.add(new Move(row, col, row + 2*r, col));
+						
+			}
 			if(a.type.equals(Piece.Type.KNIGHT)) {
 				for(int i=0; i<8; i++){
 					int x = (((i+1)%4)/2+1) * ((i/4)*-2+1);
@@ -268,9 +286,8 @@ class Move {
 		this.endCol = endCol;
 	}
 
-	@Override	
+	@Override
 	public boolean equals(Object obj){
-		System.out.println("asdf");
 		if(obj instanceof Move)
 			return equals((Move)obj);
 		else
@@ -278,7 +295,6 @@ class Move {
 	}
 
 	public boolean equals(Move m) {
-		System.out.println("asdfasdf");
 		return startRow == m.startRow && startCol == m.startCol && endRow == m.endRow && endCol == m.endCol;
 	}
 	
