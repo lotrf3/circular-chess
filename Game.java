@@ -8,6 +8,18 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 
+class State {
+	public Piece[][] board = new Piece[16][4];
+	public int halfMoves = 0;
+	public State clone(){
+		State copy = new State();
+		copy.halfMoves = halfMoves;
+		for(int i = 0; i < 16; i++)
+			System.arraycopy(board[i], 0, copy.board[i], 0, 4);
+		return copy;
+	}
+}
+
 
 public class Game {
 	public static void main(String args[]) throws IOException {
@@ -25,10 +37,11 @@ public class Game {
 		
 	}
 	boolean whiteToMove = true;
-	Stack<Piece[][]> history;
+	Stack<State> history;
 	public Game(){
-		history = new Stack<Piece[][]>();
-		history.push(new Piece[][]{
+		history = new Stack<State>();
+		State state = new State();
+		state.board = new Piece[][]{
 			{
 				new Piece(Piece.Type.KING, true), new Piece(Piece.Type.BISHOP, true), new Piece(Piece.Type.KNIGHT, true), new Piece(Piece.Type.ROOK, true)
 			}, {
@@ -62,11 +75,42 @@ public class Game {
 			}, {
 				new Piece(Piece.Type.QUEEN, true), new Piece(Piece.Type.BISHOP, true), new Piece(Piece.Type.KNIGHT, true), new Piece(Piece.Type.ROOK, true)
 			}
-		});
+		};
+		history.push(state);
 	}
 	
 	public Piece[][] board(){
-		return history.peek();
+		return history.peek().board;
+	}
+	
+	public String toFEN(){
+		State state = history.peek();
+		Piece[][] board = state.board;
+		int nulls = 0;
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < 16; i++) {
+			for (int j = 0; j < 4; j++) {
+				if (board()[i][j] != null){
+					if(nulls > 0)
+						sb.append(Integer.toString(nulls));
+					sb.append(board[i][j].toString());
+				}
+				else
+					nulls++;
+			}
+			nulls=0;
+			if(i<15)
+				sb.append("/");
+		}
+		if(whiteToMove)
+			sb.append(" w");
+		else
+			sb.append(" b");
+		sb.append(" - - ");
+		sb.append(state.halfMoves);
+		sb.append(" ");
+		sb.append(history.size()/2 + 1);
+		return sb.toString();
 	}
 
 	public String printBoard() {
@@ -83,21 +127,22 @@ public class Game {
 		}
 		return sb.toString();
 	}
-	
-	private Piece[][] cloneBoard(){
-		return history.peek();
-	}
-
 	public boolean move(Move move) {
-		Piece[][] oldBoard = history.peek();
-		Piece[][] newBoard = new Piece[16][4];
-		Piece dest = oldBoard[move.endRow][move.endCol];
+		State old = history.peek();
+		State next = old.clone();
+		Piece dest = old.board[move.endRow][move.endCol];
+		Piece src = old.board[move.startRow][move.startCol];
 		boolean res = dest == null ? false : dest.type.equals(Piece.Type.KING);
-		for (int i = 0; i < 16; i++)
-			newBoard[i] = Arrays.copyOf(oldBoard[i], oldBoard[i].length);
-		newBoard[move.endRow][move.endCol] = newBoard[move.startRow][move.startCol];
-		newBoard[move.startRow][move.startCol] = null;
-		history.push(newBoard);
+		next.board[move.endRow][move.endCol] = next.board[move.startRow][move.startCol];
+		if(move.promotion != null)
+			next.board[move.endRow][move.endCol].type = move.promotion;
+		next.board[move.startRow][move.startCol] = null;
+		if(dest != null || src.type.equals(Piece.Type.PAWN))
+			next.halfMoves = 0;
+		else
+			next.halfMoves++;
+		res = res || next.halfMoves == 50;
+		history.push(next);
 		whiteToMove = !whiteToMove;
 		return res;
 	}
@@ -148,7 +193,7 @@ double quiesce(double alpha, double beta) {
 	
 	private double evaluate(){
 		double value = 0.0;
-		Piece[][] b = history.peek();
+		Piece[][] b = board();
 		for(int i=0; i<16; i++)
 			for(int j=0; j<4; j++)
 				if(b[i][j] != null)
@@ -168,6 +213,18 @@ double quiesce(double alpha, double beta) {
 		return moves;
 	}
 	
+	private void validPawnMoves(int startRow, int startCol, int endRow, int endCol, Set<Move> moves){
+		if((whiteToMove && (endRow == 7 || endRow == 8))
+			|| (!whiteToMove && (endRow == 0 || endRow == 15))){
+			moves.add(new Move(startRow, startCol, endRow, endCol, Piece.Type.QUEEN));
+			moves.add(new Move(startRow, startCol, endRow, endCol, Piece.Type.ROOK));
+			moves.add(new Move(startRow, startCol, endRow, endCol, Piece.Type.KNIGHT));
+			moves.add(new Move(startRow, startCol, endRow, endCol, Piece.Type.BISHOP));
+		}
+		else
+			moves.add(new Move(startRow, startCol, endRow, endCol));
+	}
+	
 	private void log(String str){
 		System.out.println(str);
 	}
@@ -178,14 +235,12 @@ double quiesce(double alpha, double beta) {
 				int r = (row/8) * 2 - 1;
 				if(a.white)
 					r*=-1;
-				log(r + " " + row);
 				if(board()[row + r][col] == null)
-					validMoves.add(new Move(row, col, row + r, col));
+					validPawnMoves(row, col, row + r, col, validMoves);
 				if(col > 0 && board()[row+r][col-1] != null && board()[row+r][col-1].white != a.white)
-					validMoves.add(new Move(row, col, row + r, col-1));
+					validPawnMoves(row, col, row+r, col-1, validMoves);
 				if(col < 3 && board()[row+r][col+1] != null && board()[row+r][col+1].white != a.white)
-					validMoves.add(new Move(row, col, row + r, col+1));
-				//TODO add en passant
+					validPawnMoves(row, col, row+r, col+1, validMoves);
 				if(((a.white && (row == 1 || row == 14))
 					|| (!a.white && (row == 6 || row == 9)))
 					&&(board()[row + 2*r][col] == null))
@@ -224,21 +279,19 @@ double quiesce(double alpha, double beta) {
 						}
 			}
 		}
-		for(Move m : validMoves)
-			System.out.println(m.toString());
 		return validMoves;
 	}
 }
 
 class Piece {
 	public enum Type {
-		KING('k', 1000),
-		QUEEN('q', 9),
-		ROOK('r', 5),
-		KNIGHT('n', 3),
-		BISHOP('b', 3),
-		PAWN('p', 1);
-		char type;
+		KING('K', 1000),
+		QUEEN('Q', 9),
+		ROOK('R', 5),
+		KNIGHT('N', 3),
+		BISHOP('B', 3),
+		PAWN('P', 1);
+		public char type;
 		public double value;
 		Type(char c, double v) {
 			type = c;
@@ -248,7 +301,7 @@ class Piece {
 			return String.valueOf(type);
 		}
 		public boolean equals(Type t) {
-			return type == t.type;
+			return t != null && type == t.type;
 		}
 	}
 
@@ -260,7 +313,7 @@ class Piece {
 	}
 	public String toString() {
 		String str = type.toString();
-		if (white) str = str.toUpperCase();
+		if (!white) str = str.toLowerCase();
 		return str;
 	}
 	public double value(){
@@ -270,20 +323,42 @@ class Piece {
 
 class Move {
 	int startRow, startCol, endRow, endCol;
+	Piece.Type promotion;
 	public static Move parse(String move) {
-		String[] parts = move.split("-");
-		return new Move(
+		String[] proms = move.split("=");
+		Piece.Type promotion = null;
+		if(proms.length > 1){
+			char t = proms[1].toUpperCase().charAt(0);
+			if(t == Piece.Type.QUEEN.type)
+				promotion = Piece.Type.QUEEN;
+			else if(t == Piece.Type.ROOK.type)
+				promotion = Piece.Type.ROOK;
+			else if(t == Piece.Type.KNIGHT.type)
+				promotion = Piece.Type.KNIGHT;
+			else if(t == Piece.Type.BISHOP.type)
+				promotion = Piece.Type.BISHOP;
+		}
+		String[] parts = proms[0].split("-");
+		Move m = new Move(
 		Integer.parseInt(parts[0].substring(1))-1,
 		parts[0].charAt(0) - 'a',
 		Integer.parseInt(parts[1].substring(1))-1,
-		parts[1].charAt(0) - 'a');
+		parts[1].charAt(0) - 'a',
+		promotion);
+		System.out.println(m.toString() + " == " + move);
+		return m;
+	}
+	
+	public Move(int startRow, int startCol, int endRow, int endCol){
+		this(startRow, startCol, endRow, endCol, null);
 	}
 
-	public Move(int startRow, int startCol, int endRow, int endCol) {
+	public Move(int startRow, int startCol, int endRow, int endCol, Piece.Type promotion) {
 		this.startRow = startRow;
 		this.startCol = startCol;
 		this.endRow = endRow;
 		this.endCol = endCol;
+		this.promotion = promotion;
 	}
 
 	@Override
@@ -295,23 +370,34 @@ class Move {
 	}
 
 	public boolean equals(Move m) {
-		return startRow == m.startRow && startCol == m.startCol && endRow == m.endRow && endCol == m.endCol;
+		boolean flag = startRow == m.startRow && startCol == m.startCol && endRow == m.endRow && endCol == m.endCol
+			&& ((promotion == null && m.promotion == null) || promotion.equals(m.promotion));
+		System.out.println(m.toString() + "==" + toString() + " " + flag);
+		return flag;
 	}
 	
 	@Override
 	public int hashCode(){
-		int hash = startCol;
+		int hash = 0;
+		if(promotion != null)
+			hash = (int)promotion.type;
+		hash = (hash << 2) + startCol;
 		hash = (hash << 4) + startRow;
 		hash = (hash << 2) + endCol;
 		hash = (hash << 4) + endRow;
-		System.out.println(toString() + hash);
+		
+		System.out.println(toString() + " hashes " + hash);
 		return hash;
 	}
 	
 	public String toString(){
-		return String.valueOf((char)(startCol + 'a')) + 
+		String str = String.valueOf((char)(startCol + 'a')) + 
 			Integer.toString(startRow + 1) + "-" +
 			String.valueOf((char)(endCol + 'a'))+
 			Integer.toString(endRow + 1);
+		if(promotion != null)
+			str += "=" + promotion.toString();
+		return str;
 	}
 }
+
