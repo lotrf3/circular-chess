@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 class State {
 	public Piece[][] board = new Piece[16][4];
 	public int halfMoves = 0;
+	boolean whiteToMove = true;
 	public State clone(){
 		State copy = new State();
 		copy.halfMoves = halfMoves;
@@ -24,7 +25,7 @@ class State {
 public class Game {
 	public static void main(String args[]) throws IOException {
 		Game g = new Game();
-		BufferedReader br = new BufferedReader(new InputStreamReader(System. in ));
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		boolean isEnded = false;
 		while (!isEnded) {
 			System.out.print(g.printBoard());
@@ -36,7 +37,6 @@ public class Game {
 		}
 		
 	}
-	boolean whiteToMove = true;
 	Stack<State> history;
 	public Game(){
 		history = new Stack<State>();
@@ -82,6 +82,9 @@ public class Game {
 	public Piece[][] board(){
 		return history.peek().board;
 	}
+	public boolean isWhiteToMove(){
+		history.peek().whiteToMove;
+	}
 	
 	public String toFEN(){
 		State state = history.peek();
@@ -102,7 +105,7 @@ public class Game {
 			if(i<15)
 				sb.append("/");
 		}
-		if(whiteToMove)
+		if(isWhiteToMove())
 			sb.append(" w");
 		else
 			sb.append(" b");
@@ -143,7 +146,7 @@ public class Game {
 			next.halfMoves++;
 		res = res || next.halfMoves == 50;
 		history.push(next);
-		whiteToMove = !whiteToMove;
+		next.whiteToMove = !old.whiteToMove;
 		return res;
 	}
 	
@@ -214,8 +217,8 @@ double quiesce(double alpha, double beta) {
 	}
 	
 	private void validPawnMoves(int startRow, int startCol, int endRow, int endCol, Set<Move> moves){
-		if((whiteToMove && (endRow == 7 || endRow == 8))
-			|| (!whiteToMove && (endRow == 0 || endRow == 15))){
+		if((isWhiteToMove() && (endRow == 7 || endRow == 8))
+			|| (!isWhiteToMove() && (endRow == 0 || endRow == 15))){
 			moves.add(new Move(startRow, startCol, endRow, endCol, Piece.Type.QUEEN));
 			moves.add(new Move(startRow, startCol, endRow, endCol, Piece.Type.ROOK));
 			moves.add(new Move(startRow, startCol, endRow, endCol, Piece.Type.KNIGHT));
@@ -230,7 +233,7 @@ double quiesce(double alpha, double beta) {
 	}
 	private Set<Move> validMoves(int row, int col, Set<Move> validMoves) {
 		Piece a = board()[row][col];
-		if(a != null && a.white == whiteToMove) {
+		if(a != null && a.white == isWhiteToMove()) {
 			if(a.type.equals(Piece.Type.PAWN)){
 				int r = (row/8) * 2 - 1;
 				if(a.white)
@@ -345,7 +348,6 @@ class Move {
 		Integer.parseInt(parts[1].substring(1))-1,
 		parts[1].charAt(0) - 'a',
 		promotion);
-		System.out.println(m.toString() + " == " + move);
 		return m;
 	}
 	
@@ -372,7 +374,6 @@ class Move {
 	public boolean equals(Move m) {
 		boolean flag = startRow == m.startRow && startCol == m.startCol && endRow == m.endRow && endCol == m.endCol
 			&& ((promotion == null && m.promotion == null) || promotion.equals(m.promotion));
-		System.out.println(m.toString() + "==" + toString() + " " + flag);
 		return flag;
 	}
 	
@@ -385,8 +386,6 @@ class Move {
 		hash = (hash << 4) + startRow;
 		hash = (hash << 2) + endCol;
 		hash = (hash << 4) + endRow;
-		
-		System.out.println(toString() + " hashes " + hash);
 		return hash;
 	}
 	
