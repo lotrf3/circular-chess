@@ -32,7 +32,7 @@ public class Game {
 		}
 	}
 	
-	boolean whiteHuman = true, blackHuman = false;
+	boolean whiteHuman = true, blackHuman = true;
 	Stack<Move> history;
 	Piece[][] board;
 	boolean whiteToMove = true;
@@ -86,13 +86,17 @@ public class Game {
 					if(nulls > 0)
 						sb.append(Integer.toString(nulls));
 					sb.append(board[i][j].toString());
+					nulls=0;
 				}
 				else
 					nulls++;
 			}
-			nulls=0;
-			if(i<15)
+			if(i<15){
+				if(nulls > 0)
+					sb.append(nulls);
 				sb.append("/");
+			}
+			nulls=0;
 		}
 		if(whiteToMove)
 			sb.append(" w");
@@ -287,7 +291,7 @@ double quiesce(double alpha, double beta) {
 						validMoves.add(new Move(row, col, row + 2*r, col));
 						
 			}
-			if(a.type.equals(Piece.Type.KNIGHT)) {
+			else if(a.type.equals(Piece.Type.KNIGHT)) {
 				for(int i=0; i<8; i++){
 					int x = (((i+1)%4)/2+1) * ((i/4)*-2+1);
 					int y = (((i+7)%4)/2+1) * ((((i+6)%8)/4)*-2+1);
@@ -307,8 +311,8 @@ double quiesce(double alpha, double beta) {
 							range = 16;
 							if(a.type.equals(Piece.Type.KING))
 								range = 1;
-							for (int k = 0; k < 16; k++) {
-								int r = (row + i * k) % 16;
+							for (int k = 0; k < range; k++) {
+								int r = (row + i * k + 16) % 16;
 								int c = col + j * k;
 								if (c < 0 || c >= 4) break;
 									Piece b = board[r][c];
@@ -319,6 +323,8 @@ double quiesce(double alpha, double beta) {
 						}
 			}
 		}
+		for(Move m : validMoves)
+			log(m.toString());
 		return validMoves;
 	}
 }
