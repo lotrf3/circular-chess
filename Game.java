@@ -20,7 +20,6 @@ public class Game {
 			if((g.whiteToMove && g.whiteHuman) || (!g.whiteToMove && g.blackHuman))
 			{
 				m = Move.parse(br.readLine());
-				g.log(m.toString());
 				if(!g.isValid(m)){
 					System.out.println("Invalid move");
 					continue;
@@ -305,13 +304,13 @@ double quiesce(double alpha, double beta) {
 				int range;
 				for (int i = -1; i <= 1; i++)
 					for (int j = -1; j <= 1; j++)
-						if(i != j && j != 0
+						if(!(i == 0 && j == 0)
 							&& (!a.type.equals(Piece.Type.BISHOP) || (i+j)%2==0)
 							&& (!a.type.equals(Piece.Type.ROOK) || (i+j)%2==1)) {
 							range = 16;
 							if(a.type.equals(Piece.Type.KING))
 								range = 1;
-							for (int k = 0; k < range; k++) {
+							for (int k = 1; k <= range; k++) {
 								int r = (row + i * k + 16) % 16;
 								int c = col + j * k;
 								if (c < 0 || c >= 4) break;
@@ -323,8 +322,6 @@ double quiesce(double alpha, double beta) {
 						}
 			}
 		}
-		for(Move m : validMoves)
-			log(m.toString());
 		return validMoves;
 	}
 }
