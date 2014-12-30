@@ -8,40 +8,38 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 
-class State {
-	public Piece[][] board = new Piece[16][4];
-	public int halfMoves = 0;
-	boolean whiteToMove = true;
-	public State clone(){
-		State copy = new State();
-		copy.halfMoves = halfMoves;
-		for(int i = 0; i < 16; i++)
-			System.arraycopy(board[i], 0, copy.board[i], 0, 4);
-		return copy;
-	}
-}
-
 
 public class Game {
 	public static void main(String args[]) throws IOException {
 		Game g = new Game();
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		boolean isEnded = false;
+		Move m;
 		while (!isEnded) {
-			System.out.print(g.printBoard());
-			Move m = Move.parse(br.readLine());
-			if(!g.isValid(m))
-				System.out.println("Invalid move");
+			System.out.print(g.printboard);
+			if((whiteToMove && whiteHuman) || (!whiteToMove && blackHuman))
+			{
+				m = Move.parse(br.readLine());
+				if(!g.isValid(m))
+					System.out.println("Invalid move");
+				else
+					continue;
+			}
 			else
-				isEnded = g.move(m);
+				m = bestMove();
+			isEnded = g.move(m);
 		}
-		
 	}
-	Stack<State> history;
+	
+	boolean whiteHuman = true, blackHuman = false;
+	Stack<Move> history;
+	Piece[][] board;
+	boolean whiteToMove;
+	int halfMoves;
+	int moves;
 	public Game(){
-		history = new Stack<State>();
-		State state = new State();
-		state.board = new Piece[][]{
+		history = new Stack<Move>();
+		board = new Piece[][]{
 			{
 				new Piece(Piece.Type.KING, true), new Piece(Piece.Type.BISHOP, true), new Piece(Piece.Type.KNIGHT, true), new Piece(Piece.Type.ROOK, true)
 			}, {
@@ -76,24 +74,14 @@ public class Game {
 				new Piece(Piece.Type.QUEEN, true), new Piece(Piece.Type.BISHOP, true), new Piece(Piece.Type.KNIGHT, true), new Piece(Piece.Type.ROOK, true)
 			}
 		};
-		history.push(state);
-	}
-	
-	public Piece[][] board(){
-		return history.peek().board;
-	}
-	public boolean isWhiteToMove(){
-		history.peek().whiteToMove;
 	}
 	
 	public String toFEN(){
-		State state = history.peek();
-		Piece[][] board = state.board;
 		int nulls = 0;
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < 16; i++) {
 			for (int j = 0; j < 4; j++) {
-				if (board()[i][j] != null){
+				if (board[i][j] != null){
 					if(nulls > 0)
 						sb.append(Integer.toString(nulls));
 					sb.append(board[i][j].toString());
@@ -105,25 +93,25 @@ public class Game {
 			if(i<15)
 				sb.append("/");
 		}
-		if(isWhiteToMove())
+		if(whiteToMove)
 			sb.append(" w");
 		else
 			sb.append(" b");
 		sb.append(" - - ");
-		sb.append(state.halfMoves);
+		sb.append(halfMoves);
 		sb.append(" ");
-		sb.append(history.size()/2 + 1);
+		sb.append(moves);
 		return sb.toString();
 	}
 
-	public String printBoard() {
+	public String printboard {
 		StringBuilder sb = new StringBuilder();
 		for (int k = 0; k < 4; k++)
 		sb.append((char)('a' + k));
 		sb.append('\n');
 		for (int i = 0; i < 16; i++) {
 			for (int j = 0; j < 4; j++) {
-				if (board()[i][j] != null) sb.append(board()[i][j].toString());
+				if (board[i][j] != null) sb.append(board[i][j].toString());
 				else sb.append('.');
 			}
 			sb.append(' ' + Integer.toString(i+1) + "\n");
@@ -131,23 +119,40 @@ public class Game {
 		return sb.toString();
 	}
 	public boolean move(Move move) {
-		State old = history.peek();
-		State next = old.clone();
-		Piece dest = old.board[move.endRow][move.endCol];
-		Piece src = old.board[move.startRow][move.startCol];
+		history.push(move);
+		Piece dest = board[move.endRow][move.endCol];
+		Piece src = board[move.startRow][move.startCol];
+		move.captures = dest;
+		move.halfMoves = halfMoves;
 		boolean res = dest == null ? false : dest.type.equals(Piece.Type.KING);
-		next.board[move.endRow][move.endCol] = next.board[move.startRow][move.startCol];
+		board[move.endRow][move.endCol] = board[move.startRow][move.startCol];
 		if(move.promotion != null)
-			next.board[move.endRow][move.endCol].type = move.promotion;
-		next.board[move.startRow][move.startCol] = null;
+			board[move.endRow][move.endCol].type = move.promotion;
+		board[move.startRow][move.startCol] = null;
 		if(dest != null || src.type.equals(Piece.Type.PAWN))
-			next.halfMoves = 0;
+			halfMoves = 0;
 		else
-			next.halfMoves++;
-		res = res || next.halfMoves == 50;
-		history.push(next);
-		next.whiteToMove = !old.whiteToMove;
+			halfMoves++;
+		res = res || halfMoves == 50;
+		if(!whiteToMove)
+			moves++;
+		whiteToMove = !whiteToMove;
 		return res;
+	}
+	
+	public void unmove(){
+		Move move = history.pop();
+		board[move.startRow][move.startCol] = board[move.endRow][move.endCol];
+		if(move.captures != null)
+			board[move.endRow][move.endCol] = move.captures;
+		else
+			board[move.endRow][move.endCol] = null;
+		if(move.promotion != null)
+			board[move.startRow][move.startCol].type = Piece.Type.PAWN;
+		halfMoves = move.halfMoves;
+		if(whiteToMove)
+			moves--;
+		whiteToMove = !whiteToMove;
 	}
 	
 	private Move bestMove(){
@@ -163,7 +168,7 @@ double alphaBeta( double alpha, double beta, int depthleft, Map<Double, Move> mo
 		double score = -alphaBeta( -beta, -alpha, depthleft - 1, null);
 		if(moves != null)
 			moves.put(score,m);
-		history.pop();
+		unmove();
 		if( score >= beta )
 			return beta;   //  fail hard beta-cutoff
 		if( score > alpha )
@@ -180,10 +185,10 @@ double quiesce(double alpha, double beta) {
         alpha = stand_pat;
  
     for(Move m : allValidMoves())  {
-    	if(board()[m.endRow][m.endCol] != null){
+    	if(board[m.endRow][m.endCol] != null){
 	        move(m);
 	        double score = -quiesce(-beta, -alpha);
-	        history.pop();
+	        unmove();
 	 
 	        if( score >= beta )
 	            return beta;
@@ -196,7 +201,7 @@ double quiesce(double alpha, double beta) {
 	
 	private double evaluate(){
 		double value = 0.0;
-		Piece[][] b = board();
+		Piece[][] b = board;
 		for(int i=0; i<16; i++)
 			for(int j=0; j<4; j++)
 				if(b[i][j] != null)
@@ -217,8 +222,8 @@ double quiesce(double alpha, double beta) {
 	}
 	
 	private void validPawnMoves(int startRow, int startCol, int endRow, int endCol, Set<Move> moves){
-		if((isWhiteToMove() && (endRow == 7 || endRow == 8))
-			|| (!isWhiteToMove() && (endRow == 0 || endRow == 15))){
+		if((whiteToMove && (endRow == 7 || endRow == 8))
+			|| (!whiteToMove && (endRow == 0 || endRow == 15))){
 			moves.add(new Move(startRow, startCol, endRow, endCol, Piece.Type.QUEEN));
 			moves.add(new Move(startRow, startCol, endRow, endCol, Piece.Type.ROOK));
 			moves.add(new Move(startRow, startCol, endRow, endCol, Piece.Type.KNIGHT));
@@ -232,21 +237,21 @@ double quiesce(double alpha, double beta) {
 		System.out.println(str);
 	}
 	private Set<Move> validMoves(int row, int col, Set<Move> validMoves) {
-		Piece a = board()[row][col];
-		if(a != null && a.white == isWhiteToMove()) {
+		Piece a = board[row][col];
+		if(a != null && a.white == whiteToMove) {
 			if(a.type.equals(Piece.Type.PAWN)){
 				int r = (row/8) * 2 - 1;
 				if(a.white)
 					r*=-1;
-				if(board()[row + r][col] == null)
+				if(board[row + r][col] == null)
 					validPawnMoves(row, col, row + r, col, validMoves);
-				if(col > 0 && board()[row+r][col-1] != null && board()[row+r][col-1].white != a.white)
+				if(col > 0 && board[row+r][col-1] != null && board[row+r][col-1].white != a.white)
 					validPawnMoves(row, col, row+r, col-1, validMoves);
-				if(col < 3 && board()[row+r][col+1] != null && board()[row+r][col+1].white != a.white)
+				if(col < 3 && board[row+r][col+1] != null && board[row+r][col+1].white != a.white)
 					validPawnMoves(row, col, row+r, col+1, validMoves);
 				if(((a.white && (row == 1 || row == 14))
 					|| (!a.white && (row == 6 || row == 9)))
-					&&(board()[row + 2*r][col] == null))
+					&&(board[row + 2*r][col] == null))
 						validMoves.add(new Move(row, col, row + 2*r, col));
 						
 			}
@@ -257,7 +262,7 @@ double quiesce(double alpha, double beta) {
 					int r = (row + x + 16) % 16;
 					int c = col + y;
 					if(c >= 0 && c < 4
-						&& (board()[r][c] == null || board()[r][c].white != a.white))
+						&& (board[r][c] == null || board[r][c].white != a.white))
 						validMoves.add(new Move(row, col, r, c));
 				}
 			} else {
@@ -274,7 +279,7 @@ double quiesce(double alpha, double beta) {
 								int r = (row + i * k) % 16;
 								int c = col + j * k;
 								if (c < 0 || c >= 4) break;
-									Piece b = board()[r][c];
+									Piece b = board[r][c];
 								if (b != null && b.white == a.white) break;
 									validMoves.add(new Move(row, col, r, c));
 								if (b != null) break;
@@ -325,8 +330,12 @@ class Piece {
 }
 
 class Move {
+	//data available from parsing
 	int startRow, startCol, endRow, endCol;
 	Piece.Type promotion;
+	//metadata
+	Piece captures;
+	int halfMoves;
 	public static Move parse(String move) {
 		String[] proms = move.split("=");
 		Piece.Type promotion = null;
