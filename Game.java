@@ -16,17 +16,18 @@ public class Game {
 		boolean isEnded = false;
 		Move m;
 		while (!isEnded) {
-			System.out.print(g.printboard);
-			if((whiteToMove && whiteHuman) || (!whiteToMove && blackHuman))
+			System.out.print(g.printBoard());
+			if((g.whiteToMove && g.whiteHuman) || (!g.whiteToMove && g.blackHuman))
 			{
 				m = Move.parse(br.readLine());
-				if(!g.isValid(m))
+				g.log(m.toString());
+				if(!g.isValid(m)){
 					System.out.println("Invalid move");
-				else
 					continue;
+				}
 			}
 			else
-				m = bestMove();
+				m = g.bestMove();
 			isEnded = g.move(m);
 		}
 	}
@@ -34,7 +35,7 @@ public class Game {
 	boolean whiteHuman = true, blackHuman = false;
 	Stack<Move> history;
 	Piece[][] board;
-	boolean whiteToMove;
+	boolean whiteToMove = true;
 	int halfMoves;
 	int moves;
 	public Game(){
@@ -104,7 +105,7 @@ public class Game {
 		return sb.toString();
 	}
 
-	public String printboard {
+	public String printBoard() {
 		StringBuilder sb = new StringBuilder();
 		for (int k = 0; k < 4; k++)
 		sb.append((char)('a' + k));
@@ -156,10 +157,39 @@ public class Game {
 	}
 	
 	private Move bestMove(){
-		HashMap<Double, Move> moves = new HashMap<Double, Move>();
-		double score = alphaBeta(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, 5, moves);
-		return moves.get(score);
+		Move best = null;
+		double max = Double.NEGATIVE_INFINITY;
+		for(Move m : allValidMoves()){
+			move(m);
+			double score = -negaMax(2);
+			unmove();
+			if(score > max){
+				max = score;
+				best = m;
+			}
+		}
+		log(max + " " + best.toString());
+		return best;
 	}
+	
+	double negaMax(int depth){
+		if(depth == 0)
+			return evaluate();
+		double max = Double.NEGATIVE_INFINITY;
+		for(Move m : allValidMoves()){
+			//log(depth + ":" + m.toString());
+			move(m);
+			double score = -negaMax(depth-1);
+			//log("pre: " +printBoard()());
+			unmove();
+			//log("post:"+printBoard()());
+			if(score > max)
+				max = score;
+		}
+		return max;
+	}
+	
+	
 	
 double alphaBeta( double alpha, double beta, int depthleft, Map<Double, Move> moves) {
 	if(depthleft == 0) return quiesce( alpha, beta );
