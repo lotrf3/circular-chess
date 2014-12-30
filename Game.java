@@ -229,14 +229,16 @@ double quiesce(double alpha, double beta) {
     return alpha;
 }
 	
-	private double evaluate(){
+	public double evaluate(){
 		double value = 0.0;
-		Piece[][] b = board;
 		for(int i=0; i<16; i++)
 			for(int j=0; j<4; j++)
-				if(b[i][j] != null)
-					value += b[i][j].value();
-		return value;
+				if(board[i][j] != null)
+					value += board[i][j].value();
+		if(!whiteToMove)
+			return -value;
+		else
+			return value;
 	}
 
 	public boolean isValid(Move m) {
