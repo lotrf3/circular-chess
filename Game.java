@@ -10,6 +10,41 @@ import java.io.InputStreamReader;
 
 
 public class Game {
+	public enum Result {
+		ONGOING("*", "Ongoing"),
+		WHITE_CHECKMATE("1-0", "White checkmate"),
+		BLACK_CHECKMATE("0-1", "Black checkmate"),
+		WHITE_RESIGNS("0-1", "White resigns"),
+		BLACK_RESIGNS("1-0", "Black resigns"),
+		STALEMATE("1/2-1/2", "Stalemate"),
+		INSUFFICIENT_MATERIAL("1/2-1/2", "Insufficient material"),
+		THREEFOLD_REPETITION("1/2-1/2", "Threefold repetition"),
+		FIFTY_MOVE_RULE("1/2-1/2", "Fifty move rule"),
+		WHITE_TIME_FORFIET("0-1", "White ran out of time"),
+		BLACK_TIME_FORFIET("1-0", "Black ran out of time"),
+		DRAW_BY_AGREEMENT("1/2-1/2", "Draw by agreement");
+		String result, type;
+		Result(String result, String type){
+			this.result = result;
+			this.type = type;
+		}
+		
+		public String toString(){
+			return result + ". " + type;
+		}
+		
+		public double value(){
+			if(result == "1-0")
+				return Double.POSITIVE_INFINITY;
+			else if (result == "0-1")
+				return Double.NEGATIVE_INFINITY;
+			else if (result == "1/2-1/2")
+				return 0;
+			else
+				return Double.NaN;
+		}
+	}
+	
 	public static void main(String args[]) throws IOException {
 		Game g = new Game();
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
@@ -29,14 +64,18 @@ public class Game {
 				m = g.bestMove();
 			isEnded = g.move(m);
 		}
+		System.out.println(g.result.toString());
+		br.readLine();
 	}
 	
-	boolean whiteHuman = true, blackHuman = true;
+	HashMap<String, Integer> repetitions;
+	boolean whiteHuman = false, blackHuman = false;
 	Stack<Move> history;
 	Piece[][] board;
 	boolean whiteToMove = true;
 	int halfMoves;
 	int moves;
+	Result result;
 	public Game(){
 		history = new Stack<Move>();
 		board = new Piece[][]{
@@ -74,9 +113,12 @@ public class Game {
 				new Piece(Piece.Type.QUEEN, true), new Piece(Piece.Type.BISHOP, true), new Piece(Piece.Type.KNIGHT, true), new Piece(Piece.Type.ROOK, true)
 			}
 		};
+		repetitions = new HashMap<String, Integer>();
+		repetitions.put(toFENNoMove().toString(), 1);
+		result = Result.ONGOING;
 	}
 	
-	public String toFEN(){
+	private StringBuilder toFENNoMove(){
 		int nulls = 0;
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < 16; i++) {
@@ -101,6 +143,11 @@ public class Game {
 			sb.append(" w");
 		else
 			sb.append(" b");
+		return sb;
+	}
+	
+	public String toFEN(){
+		StringBuilder sb = toFENNoMove();
 		sb.append(" - - ");
 		sb.append(halfMoves);
 		sb.append(" ");
@@ -133,19 +180,33 @@ public class Game {
 		if(move.promotion != null)
 			board[move.endRow][move.endCol].type = move.promotion;
 		board[move.startRow][move.startCol] = null;
+		if(!whiteToMove)
+			moves++;
+		whiteToMove = !whiteToMove;
+		String key = toFENNoMove().toString();
+		Integer reps = repetitions.get(key);
+		if(reps == null)
+			repetitions.put(key, 1);
+		else if(reps == 2)
+			result = Result.THREEFOLD_REPETITION;
+		else
+			repetitions.put(key, reps + 1);
 		if(dest != null || src.type.equals(Piece.Type.PAWN))
 			halfMoves = 0;
 		else
 			halfMoves++;
-		res = res || halfMoves == 50;
-		if(!whiteToMove)
-			moves++;
-		whiteToMove = !whiteToMove;
+		if(halfMoves == 50)
+			result = Result.FIFTY_MOVE_RULE;
+		
+		res = res || result != Result.ONGOING;
 		return res;
 	}
 	
 	public void unmove(){
 		Move move = history.pop();
+		String key = toFENNoMove().toString();
+		repetitions.put(key, repetitions.get(key)-1);
+		
 		board[move.startRow][move.startCol] = board[move.endRow][move.endCol];
 		if(move.captures != null)
 			board[move.endRow][move.endCol] = move.captures;
@@ -233,6 +294,8 @@ double quiesce(double alpha, double beta) {
 }
 	
 	public double evaluate(){
+		if(result != Result.ONGOING)
+			return result.value();
 		double value = 0.0;
 		for(int i=0; i<16; i++)
 			for(int j=0; j<4; j++)
@@ -271,6 +334,7 @@ double quiesce(double alpha, double beta) {
 	private void log(String str){
 		System.out.println(str);
 	}
+	
 	private Set<Move> validMoves(int row, int col, Set<Move> validMoves) {
 		Piece a = board[row][col];
 		if(a != null && a.white == whiteToMove) {
