@@ -50,26 +50,27 @@ public class Game {
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		boolean isEnded = false;
 		Move m;
-		while (!isEnded) {
+		while (g.result == Result.ONGOING) {
 			System.out.print(g.printBoard());
 			if((g.whiteToMove && g.whiteHuman) || (!g.whiteToMove && g.blackHuman))
 			{
 				m = Move.parse(br.readLine());
-				if(!g.isValid(m)){
+				if(!g.isLegal(m)){
 					System.out.println("Invalid move");
 					continue;
 				}
 			}
 			else
 				m = g.bestMove();
-			isEnded = g.move(m);
+			g.move(m);
+			g.calculateCheckmate();
 		}
 		System.out.println(g.result.toString());
 		br.readLine();
 	}
 	
 	HashMap<String, Integer> repetitions;
-	boolean whiteHuman = false, blackHuman = false;
+	boolean whiteHuman = true, blackHuman = true;
 	Stack<Move> history;
 	Piece[][] board;
 	boolean whiteToMove = true;
@@ -169,13 +170,12 @@ public class Game {
 		}
 		return sb.toString();
 	}
-	public boolean move(Move move) {
+	public void move(Move move) {
 		history.push(move);
 		Piece dest = board[move.endRow][move.endCol];
 		Piece src = board[move.startRow][move.startCol];
 		move.captures = dest;
 		move.halfMoves = halfMoves;
-		boolean res = dest == null ? false : dest.type.equals(Piece.Type.KING);
 		board[move.endRow][move.endCol] = board[move.startRow][move.startCol];
 		if(move.promotion != null)
 			board[move.endRow][move.endCol].type = move.promotion;
@@ -197,9 +197,6 @@ public class Game {
 			halfMoves++;
 		if(halfMoves == 50)
 			result = Result.FIFTY_MOVE_RULE;
-		
-		res = res || result != Result.ONGOING;
-		return res;
 	}
 	
 	public void unmove(){
@@ -223,7 +220,7 @@ public class Game {
 	private Move bestMove(){
 		Move best = null;
 		double max = Double.NEGATIVE_INFINITY;
-		for(Move m : allValidMoves()){
+		for(Move m : allLegalMoves()){
 			move(m);
 			double score = -negaMax(2);
 			unmove();
@@ -240,7 +237,7 @@ public class Game {
 		if(depth == 0)
 			return evaluate();
 		double max = Double.NEGATIVE_INFINITY;
-		for(Move m : allValidMoves()){
+		for(Move m : allPseudoLegalMoves()){
 			//log(depth + ":" + m.toString());
 			move(m);
 			double score = -negaMax(depth-1);
@@ -257,7 +254,7 @@ public class Game {
 	
 double alphaBeta( double alpha, double beta, int depthleft, Map<Double, Move> moves) {
 	if(depthleft == 0) return quiesce( alpha, beta );
-	for (Move m : allValidMoves()) {
+	for (Move m : allLegalMoves()) {
 		move(m);
 		double score = -alphaBeta( -beta, -alpha, depthleft - 1, null);
 		if(moves != null)
@@ -278,7 +275,7 @@ double quiesce(double alpha, double beta) {
     if( alpha < stand_pat )
         alpha = stand_pat;
  
-    for(Move m : allValidMoves())  {
+    for(Move m : allLegalMoves())  {
     	if(board[m.endRow][m.endCol] != null){
 	        move(m);
 	        double score = -quiesce(-beta, -alpha);
@@ -307,15 +304,24 @@ double quiesce(double alpha, double beta) {
 			return value;
 	}
 
-	public boolean isValid(Move m) {
-		return validMoves(m.startRow, m.startCol, new HashSet<Move>()).contains(m);
+	public boolean isLegal(Move m) {
+		return legalMoves(m.startRow, m.startCol, new HashSet<Move>()).contains(m);
 	}
 	
-	private Set<Move> allValidMoves(){
+	private Set<Move> allPseudoLegalMoves(){
 		Set<Move> moves = new HashSet<Move>();
 		for(int i=0; i<16; i++)
 			for(int j=0; j<4; j++)
-				validMoves(i,j,moves);
+				pseudoLegalMoves(i,j,moves);
+		return moves;
+	}
+	
+	
+	private Set<Move> allLegalMoves(){
+		Set<Move> moves = new HashSet<Move>();
+		for(int i=0; i<16; i++)
+			for(int j=0; j<4; j++)
+				legalMoves(i,j,moves);
 		return moves;
 	}
 	
@@ -335,7 +341,45 @@ double quiesce(double alpha, double beta) {
 		System.out.println(str);
 	}
 	
-	private Set<Move> validMoves(int row, int col, Set<Move> validMoves) {
+	private void calculateCheckmate(){
+		if(allLegalMoves().size() == 0)
+			if(!whiteToMove)
+				result = Result.WHITE_CHECKMATE;
+			else
+				result = Result.BLACK_CHECKMATE;
+			
+	}
+	
+	private boolean canKingBeCaptured(Set<Move> moves){
+		for(int i=0; i<16; i++)
+			for(int j=0; j<4; j++){
+				pseudoLegalMoves(i,j,moves);
+				for(Move m : moves){
+					Piece p = board[m.endRow][m.endCol];
+					if(p != null && p.type == Piece.Type.KING)
+						return true;
+				}
+			}
+		return false;
+
+	}
+	
+	private Set<Move> legalMoves(int row, int col, Set<Move> moves){
+		pseudoLegalMoves(row, col, moves);
+		Iterator<Move> it = moves.iterator();
+		Set<Move> temp = new HashSet<Move>();
+		while(it.hasNext()){
+			Move m = it.next();
+			move(m);
+			if(canKingBeCaptured(temp))
+				it.remove();
+			unmove();
+			temp.clear();
+		}
+		return moves;
+	}
+	
+	private Set<Move> pseudoLegalMoves(int row, int col, Set<Move> validMoves) {
 		Piece a = board[row][col];
 		if(a != null && a.white == whiteToMove) {
 			if(a.type.equals(Piece.Type.PAWN)){
