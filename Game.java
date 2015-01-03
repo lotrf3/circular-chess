@@ -413,8 +413,8 @@ double quiesce(double alpha, double beta) {
 				for (int i = -1; i <= 1; i++)
 					for (int j = -1; j <= 1; j++)
 						if(!(i == 0 && j == 0)
-							&& (!a.type.equals(Piece.Type.BISHOP) || (i+j)%2==0)
-							&& (!a.type.equals(Piece.Type.ROOK) || (i+j)%2==1)) {
+							&& (!a.type.equals(Piece.Type.BISHOP) || (i+j+2)%2==0)
+							&& (!a.type.equals(Piece.Type.ROOK) || (i+j+2)%2==1)) {
 							range = 16;
 							if(a.type.equals(Piece.Type.KING))
 								range = 1;
