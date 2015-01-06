@@ -118,7 +118,7 @@ public class Circular_Chess implements EntryPoint {
 	}
 
 	private void redraw() {
-
+		ctx.clearRect(-canvasWidth/2.0,-canvasHeight/2.0,canvasWidth,canvasHeight);
 		ctx.setStrokeStyle("#000000");
 		for (int i = 0; i < 16; i++) {
 			for (int j = 0; j < 4; j++) {
@@ -165,7 +165,9 @@ public class Circular_Chess implements EntryPoint {
 					ImageElement img = (ImageElement) images.get(p.toString())
 							.getElement().cast();
 					if (i == selected[0] && j == selected[1]) {
-						ctx.drawImage(img, 0, 0);
+						ctx.drawImage(img,
+								mouseX - img.getWidth()/2.0 - canvasWidth/2.0,
+								mouseY - img.getHeight()/2.0 - canvasHeight/2.0);
 					} else {
 						ctx.drawImage(img,
 								Math.cos((i + 0.5) * CELL_ANGLE) * midRad - img.getWidth()/2.0,
@@ -177,8 +179,10 @@ public class Circular_Chess implements EntryPoint {
 	}
 
 	public int[] getCoords(double x, double y) {
+		x -= canvasWidth/2.0;
+		y -= canvasHeight/2.0;
 		int[] coords = { -1, -1 };
-		double theta = Math.atan(y / x);
+		double theta = (Math.atan2(y , x) + 2*Math.PI)%(2*Math.PI);
 		double radius = Math.sqrt(x * x + y * y);
 		while ((coords[1] + 1) * RING_WIDTH + INNER_RADIUS < radius)
 			coords[1]++;
