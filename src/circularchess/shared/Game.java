@@ -3,7 +3,6 @@ package circularchess.shared;
 import java.util.*;
 import java.lang.*;
 import java.io.*;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
@@ -45,35 +44,12 @@ public class Game {
 		}
 	}
 	
-	public static void main(String args[]) throws IOException {
-		Game g = new Game();
-		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-		boolean isEnded = false;
-		Move m;
-		while (g.result == Result.ONGOING) {
-			System.out.print(g.printBoard());
-			if((g.whiteToMove && g.whiteHuman) || (!g.whiteToMove && g.blackHuman))
-			{
-				m = Move.parse(br.readLine());
-				if(!g.isLegal(m)){
-					System.out.println("Invalid move");
-					continue;
-				}
-			}
-			else
-				m = g.bestMove();
-			g.move(m);
-			g.calculateCheckmate();
-		}
-		System.out.println(g.result.toString());
-		br.readLine();
-	}
 	
 	HashMap<String, Integer> repetitions;
 	boolean whiteHuman = true, blackHuman = true;
 	Stack<Move> history;
-	Piece[][] board;
-	boolean whiteToMove = true;
+	public Piece[][] board;
+	public boolean whiteToMove = true;
 	int halfMoves;
 	int moves;
 	Result result;
@@ -433,122 +409,3 @@ double quiesce(double alpha, double beta) {
 		return validMoves;
 	}
 }
-
-class Piece {
-	public enum Type {
-		KING('K', 1000),
-		QUEEN('Q', 9),
-		ROOK('R', 5),
-		KNIGHT('N', 3),
-		BISHOP('B', 3),
-		PAWN('P', 1);
-		public char type;
-		public double value;
-		Type(char c, double v) {
-			type = c;
-			value = v;
-		}
-		public String toString() {
-			return String.valueOf(type);
-		}
-		public boolean equals(Type t) {
-			return t != null && type == t.type;
-		}
-	}
-
-	public Type type;
-	public boolean white;
-	public Piece(Type type, boolean white) {
-		this.type = type;
-		this.white = white;
-	}
-	public String toString() {
-		String str = type.toString();
-		if (!white) str = str.toLowerCase();
-		return str;
-	}
-	public double value(){
-		return white ? type.value : -type.value;
-	}
-}
-
-class Move {
-	//data available from parsing
-	int startRow, startCol, endRow, endCol;
-	Piece.Type promotion;
-	//metadata
-	Piece captures;
-	int halfMoves;
-	public static Move parse(String move) {
-		String[] proms = move.split("=");
-		Piece.Type promotion = null;
-		if(proms.length > 1){
-			char t = proms[1].toUpperCase().charAt(0);
-			if(t == Piece.Type.QUEEN.type)
-				promotion = Piece.Type.QUEEN;
-			else if(t == Piece.Type.ROOK.type)
-				promotion = Piece.Type.ROOK;
-			else if(t == Piece.Type.KNIGHT.type)
-				promotion = Piece.Type.KNIGHT;
-			else if(t == Piece.Type.BISHOP.type)
-				promotion = Piece.Type.BISHOP;
-		}
-		String[] parts = proms[0].split("-");
-		Move m = new Move(
-		Integer.parseInt(parts[0].substring(1))-1,
-		parts[0].charAt(0) - 'a',
-		Integer.parseInt(parts[1].substring(1))-1,
-		parts[1].charAt(0) - 'a',
-		promotion);
-		return m;
-	}
-	
-	public Move(int startRow, int startCol, int endRow, int endCol){
-		this(startRow, startCol, endRow, endCol, null);
-	}
-
-	public Move(int startRow, int startCol, int endRow, int endCol, Piece.Type promotion) {
-		this.startRow = startRow;
-		this.startCol = startCol;
-		this.endRow = endRow;
-		this.endCol = endCol;
-		this.promotion = promotion;
-	}
-
-	@Override
-	public boolean equals(Object obj){
-		if(obj instanceof Move)
-			return equals((Move)obj);
-		else
-			return false;
-	}
-
-	public boolean equals(Move m) {
-		boolean flag = startRow == m.startRow && startCol == m.startCol && endRow == m.endRow && endCol == m.endCol
-			&& ((promotion == null && m.promotion == null) || promotion.equals(m.promotion));
-		return flag;
-	}
-	
-	@Override
-	public int hashCode(){
-		int hash = 0;
-		if(promotion != null)
-			hash = (int)promotion.type;
-		hash = (hash << 2) + startCol;
-		hash = (hash << 4) + startRow;
-		hash = (hash << 2) + endCol;
-		hash = (hash << 4) + endRow;
-		return hash;
-	}
-	
-	public String toString(){
-		String str = String.valueOf((char)(startCol + 'a')) + 
-			Integer.toString(startRow + 1) + "-" +
-			String.valueOf((char)(endCol + 'a'))+
-			Integer.toString(endRow + 1);
-		if(promotion != null)
-			str += "=" + promotion.toString();
-		return str;
-	}
-}
-

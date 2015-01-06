@@ -1,152 +1,190 @@
 package circularchess.client;
 
-import circularchess.shared.FieldVerifier;
+import java.util.HashMap;
+
+import circularchess.shared.*;
+
+import com.google.gwt.canvas.client.Canvas;
+import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.core.client.EntryPoint;
-import com.google.gwt.core.client.GWT;
-import com.google.gwt.event.dom.client.ClickEvent;
-import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.event.dom.client.KeyCodes;
-import com.google.gwt.event.dom.client.KeyUpEvent;
-import com.google.gwt.event.dom.client.KeyUpHandler;
-import com.google.gwt.user.client.rpc.AsyncCallback;
-import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.DialogBox;
-import com.google.gwt.user.client.ui.HTML;
+import com.google.gwt.dom.client.ImageElement;
+import com.google.gwt.event.dom.client.*;
+import com.google.gwt.user.client.Timer;
+import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.RootPanel;
-import com.google.gwt.user.client.ui.TextBox;
-import com.google.gwt.user.client.ui.VerticalPanel;
 
 /**
  * Entry point classes define <code>onModuleLoad()</code>.
  */
 public class Circular_Chess implements EntryPoint {
-	/**
-	 * The message displayed to the user when the server cannot be reached or
-	 * returns an error.
-	 */
-	private static final String SERVER_ERROR = "An error occurred while "
-			+ "attempting to contact the server. Please check your network "
-			+ "connection and try again.";
+	private static final int refreshRate = 25;
+	private static final int canvasWidth = 600;
+	private static final int canvasHeight = 600;
+	private static final double RING_WIDTH = 50;
+	private static final double INNER_RADIUS = 100;
+	private static final double CELL_ANGLE = 2 * Math.PI / 16;
+	private HashMap<String, Image> images;
+	private Canvas canvas;
+	private Context2d ctx;
+	private Game game;
 
-	/**
-	 * Create a remote service proxy to talk to the server-side Greeting service.
-	 */
-	private final GreetingServiceAsync greetingService = GWT
-			.create(GreetingService.class);
-
-	/**
-	 * This is the entry point method.
-	 */
 	public void onModuleLoad() {
-		final Button sendButton = new Button("Send");
-		final TextBox nameField = new TextBox();
-		nameField.setText("GWT User");
-		final Label errorLabel = new Label();
+		game = new Game();
+		selected = new int[] { -1, -1 };
+		images = new HashMap<String, Image>();
+		for (Piece.Type type : Piece.Type.values()) {
+			String key = type.toString();
+			images.put(key, new Image("images/white-" + key + ".svg"));
+			key = key.toLowerCase();
+			images.put(key, new Image("images/black-" + key + ".svg"));
+		}
+		canvas = Canvas.createIfSupported();
+		canvas.setWidth(canvasWidth + "px");
+		canvas.setCoordinateSpaceWidth(canvasWidth);
 
-		// We can add style names to widgets
-		sendButton.addStyleName("sendButton");
+		canvas.setHeight(canvasHeight + "px");
+		canvas.setCoordinateSpaceHeight(canvasHeight);
 
-		// Add the nameField and sendButton to the RootPanel
-		// Use RootPanel.get() to get the entire body element
-		RootPanel.get("nameFieldContainer").add(nameField);
-		RootPanel.get("sendButtonContainer").add(sendButton);
-		RootPanel.get("errorLabelContainer").add(errorLabel);
+		ctx = canvas.getContext2d();
+		ctx.translate(canvasWidth/2.0, canvasHeight/2.0);
+		RootPanel.get().add(canvas);
+		
+		initHandlers();
 
-		// Focus the cursor on the name field when the app loads
-		nameField.setFocus(true);
-		nameField.selectAll();
+		// setup timer
+		final Timer timer = new Timer() {
+			public void run() {
+				redraw();
+			}
+		};
+		timer.scheduleRepeating(refreshRate);
 
-		// Create the popup dialog box
-		final DialogBox dialogBox = new DialogBox();
-		dialogBox.setText("Remote Procedure Call");
-		dialogBox.setAnimationEnabled(true);
-		final Button closeButton = new Button("Close");
-		// We can set the id of a widget by accessing its Element
-		closeButton.getElement().setId("closeButton");
-		final Label textToServerLabel = new Label();
-		final HTML serverResponseLabel = new HTML();
-		VerticalPanel dialogVPanel = new VerticalPanel();
-		dialogVPanel.addStyleName("dialogVPanel");
-		dialogVPanel.add(new HTML("<b>Sending name to the server:</b>"));
-		dialogVPanel.add(textToServerLabel);
-		dialogVPanel.add(new HTML("<br><b>Server replies:</b>"));
-		dialogVPanel.add(serverResponseLabel);
-		dialogVPanel.setHorizontalAlignment(VerticalPanel.ALIGN_RIGHT);
-		dialogVPanel.add(closeButton);
-		dialogBox.setWidget(dialogVPanel);
+	}
 
-		// Add a handler to close the DialogBox
-		closeButton.addClickHandler(new ClickHandler() {
-			public void onClick(ClickEvent event) {
-				dialogBox.hide();
-				sendButton.setEnabled(true);
-				sendButton.setFocus(true);
+	int[] selected;
+	int mouseX, mouseY;
+
+	public void initHandlers() {
+
+		canvas.addMouseDownHandler(new MouseDownHandler() {
+			public void onMouseDown(MouseDownEvent event) {
+				mouseX = event.getRelativeX(canvas.getElement());
+				mouseY = event.getRelativeY(canvas.getElement());
+				selected = getCoords(mouseX, mouseY);
 			}
 		});
-
-		// Create a handler for the sendButton and nameField
-		class MyHandler implements ClickHandler, KeyUpHandler {
-			/**
-			 * Fired when the user clicks on the sendButton.
-			 */
-			public void onClick(ClickEvent event) {
-				sendNameToServer();
+		canvas.addMouseMoveHandler(new MouseMoveHandler() {
+			public void onMouseMove(MouseMoveEvent event) {
+				mouseX = event.getRelativeX(canvas.getElement());
+				mouseY = event.getRelativeY(canvas.getElement());
 			}
-
-			/**
-			 * Fired when the user types in the nameField.
-			 */
-			public void onKeyUp(KeyUpEvent event) {
-				if (event.getNativeKeyCode() == KeyCodes.KEY_ENTER) {
-					sendNameToServer();
+		});
+		canvas.addMouseUpHandler(new MouseUpHandler() {
+			public void onMouseUp(MouseUpEvent event) {
+				mouseX = event.getRelativeX(canvas.getElement());
+				mouseY = event.getRelativeY(canvas.getElement());
+				Piece p = game.board[selected[0]][selected[1]];
+				if (p != null) {
+					Move m;
+					Piece.Type promotion = null;
+					int[] target = getCoords(mouseX, mouseY);
+					int r = (selected[0] / 8) * 2 - 1;
+					if (p.type == Piece.Type.PAWN
+							&& (game.whiteToMove
+									&& (target[0] == 7 || target[0] == 8) && selected[0]
+									- r == target[0])
+							|| (!game.whiteToMove
+									&& (target[0] == 0 || target[0] == 15) && selected[0]
+									+ r == target[0]))
+						promotion = Piece.Type.QUEEN;
+					else{
+						m = new Move(selected[0], selected[1], target[0],
+								target[1]);
+						if(game.isLegal(m)){
+							log(m.toString());
+							game.move(m);							
+						}
+						else
+							log("Invalid Move");
+					}
 				}
 			}
+		});
+	}
+	
+	private void log(String str){
+		RootPanel.get().add(new Label(str));
+	}
 
-			/**
-			 * Send the name from the nameField to the server and wait for a response.
-			 */
-			private void sendNameToServer() {
-				// First, we validate the input.
-				errorLabel.setText("");
-				String textToServer = nameField.getText();
-				if (!FieldVerifier.isValidName(textToServer)) {
-					errorLabel.setText("Please enter at least four characters");
-					return;
+	private void redraw() {
+
+		ctx.setStrokeStyle("#000000");
+		for (int i = 0; i < 16; i++) {
+			for (int j = 0; j < 4; j++) {
+				// draw board
+				if ((i + j) % 2 == 0) {
+					ctx.setFillStyle("#EEEEEE");
+				} else {
+					ctx.setFillStyle("#999999");
 				}
-
-				// Then, we send the input to the server.
-				sendButton.setEnabled(false);
-				textToServerLabel.setText(textToServer);
-				serverResponseLabel.setText("");
-				greetingService.greetServer(textToServer,
-						new AsyncCallback<String>() {
-							public void onFailure(Throwable caught) {
-								// Show the RPC error message to the user
-								dialogBox
-										.setText("Remote Procedure Call - Failure");
-								serverResponseLabel
-										.addStyleName("serverResponseLabelError");
-								serverResponseLabel.setHTML(SERVER_ERROR);
-								dialogBox.center();
-								closeButton.setFocus(true);
-							}
-
-							public void onSuccess(String result) {
-								dialogBox.setText("Remote Procedure Call");
-								serverResponseLabel
-										.removeStyleName("serverResponseLabelError");
-								serverResponseLabel.setHTML(result);
-								dialogBox.center();
-								closeButton.setFocus(true);
-							}
-						});
+				ctx.beginPath();
+				double innerRad = INNER_RADIUS + j * RING_WIDTH;
+				double outerRad = INNER_RADIUS + (j + 1) * RING_WIDTH;
+				ctx.moveTo(Math.cos(i * CELL_ANGLE) * innerRad,
+						Math.sin(i * CELL_ANGLE) * innerRad);
+				ctx.lineTo(Math.cos(i * CELL_ANGLE) * outerRad,
+						Math.sin(i * CELL_ANGLE) * outerRad);
+				ctx.arcTo(
+						Math.cos((i + 0.5) * CELL_ANGLE) * outerRad
+								/ Math.cos(CELL_ANGLE / 2.0),
+						Math.sin((i + 0.5) * CELL_ANGLE) * outerRad
+								/ Math.cos(CELL_ANGLE / 2.0),
+						Math.cos((i + 1.0) * CELL_ANGLE) * outerRad,
+						Math.sin((i + 1.0) * CELL_ANGLE) * outerRad, outerRad);
+				ctx.lineTo(Math.cos((i + 1.0) * CELL_ANGLE) * innerRad,
+						Math.sin((i + 1.0) * CELL_ANGLE) * innerRad);
+				ctx.arcTo(
+						Math.cos((i + 0.5) * CELL_ANGLE) * innerRad
+								/ Math.cos(CELL_ANGLE / 2),
+						Math.sin((i + 0.5) * CELL_ANGLE) * innerRad
+								/ Math.cos(CELL_ANGLE / 2),
+						Math.cos(i * CELL_ANGLE) * innerRad,
+						Math.sin(i * CELL_ANGLE) * innerRad, innerRad);
+				ctx.closePath();
+				ctx.fill();
+				ctx.stroke();
 			}
 		}
+		for (int i = 0; i < 16; i++) {
+			for (int j = 0; j < 4; j++) {
 
-		// Add a handler to send the name to the server
-		MyHandler handler = new MyHandler();
-		sendButton.addClickHandler(handler);
-		nameField.addKeyUpHandler(handler);
+				double midRad = INNER_RADIUS + (j + 0.5) * RING_WIDTH;
+				Piece p = game.board[i][j];
+				if (p != null) {
+					ImageElement img = (ImageElement) images.get(p.toString())
+							.getElement().cast();
+					if (i == selected[0] && j == selected[1]) {
+						ctx.drawImage(img, 0, 0);
+					} else {
+						ctx.drawImage(img,
+								Math.cos((i + 0.5) * CELL_ANGLE) * midRad - img.getWidth()/2.0,
+								Math.sin((i + 0.5) * CELL_ANGLE) * midRad - img.getHeight()/2.0);
+					}
+				}
+			}
+		}
 	}
+
+	public int[] getCoords(double x, double y) {
+		int[] coords = { -1, -1 };
+		double theta = Math.atan(y / x);
+		double radius = Math.sqrt(x * x + y * y);
+		while ((coords[1] + 1) * RING_WIDTH + INNER_RADIUS < radius)
+			coords[1]++;
+		while ((coords[0] + 1) * CELL_ANGLE < theta)
+			coords[0]++;
+		return coords;
+	}
+
 }
