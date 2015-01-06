@@ -6,14 +6,11 @@ import circularchess.shared.Game;
 import circularchess.shared.Move;
 import circularchess.shared.Piece;
 
-import com.google.gwt.dom.client.Element;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Image;
-import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.RootPanel;
 
 public class PromotedPicker extends Composite {
 	public PromotedPicker(HashMap<String, Image> images, final Game game,
