@@ -61,7 +61,7 @@ public class Circular_Chess implements EntryPoint {
 		timer.scheduleRepeating(refreshRate);
 
 	}
-
+	int mode = 0;
 	int[] selected;
 	int mouseX, mouseY;
 
@@ -72,6 +72,7 @@ public class Circular_Chess implements EntryPoint {
 				mouseX = event.getRelativeX(canvas.getElement());
 				mouseY = event.getRelativeY(canvas.getElement());
 				selected = getCoords(mouseX, mouseY);
+				mode = 1;
 			}
 		});
 		canvas.addMouseMoveHandler(new MouseMoveHandler() {
@@ -82,6 +83,7 @@ public class Circular_Chess implements EntryPoint {
 		});
 		canvas.addMouseUpHandler(new MouseUpHandler() {
 			public void onMouseUp(MouseUpEvent event) {
+				mode = 0;
 				mouseX = event.getRelativeX(canvas.getElement());
 				mouseY = event.getRelativeY(canvas.getElement());
 				Piece p = game.board[selected[0]][selected[1]];
@@ -97,7 +99,9 @@ public class Circular_Chess implements EntryPoint {
 							|| (!game.whiteToMove
 									&& (target[0] == 0 || target[0] == 15) && selected[0]
 									+ r == target[0]))
-						promotion = Piece.Type.QUEEN;
+					{
+						RootPanel.get().add(new PromotedPicker(images, game, selected, target));
+					}
 					else{
 						m = new Move(selected[0], selected[1], target[0],
 								target[1]);
@@ -105,8 +109,10 @@ public class Circular_Chess implements EntryPoint {
 							log(m.toString());
 							game.move(m);							
 						}
-						else
+						else{
 							log("Invalid Move");
+							selected[0] = selected[1] = -1;
+						}
 					}
 				}
 			}
@@ -164,7 +170,7 @@ public class Circular_Chess implements EntryPoint {
 				if (p != null) {
 					ImageElement img = (ImageElement) images.get(p.toString())
 							.getElement().cast();
-					if (i == selected[0] && j == selected[1]) {
+					if (i == selected[0] && j == selected[1] && mode == 1) {
 						ctx.drawImage(img,
 								mouseX - img.getWidth()/2.0 - canvasWidth/2.0,
 								mouseY - img.getHeight()/2.0 - canvasHeight/2.0);
