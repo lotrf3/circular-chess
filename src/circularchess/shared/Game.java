@@ -47,7 +47,7 @@ public class Game {
 	
 	HashMap<String, Integer> repetitions;
 	boolean whiteHuman = true, blackHuman = true;
-	Stack<Move> history;
+	public Stack<Move> history;
 	public Piece[][] board;
 	public boolean whiteToMove = true;
 	int halfMoves;

@@ -18,6 +18,7 @@ import com.google.gwt.user.client.ui.RootPanel;
  * Entry point classes define <code>onModuleLoad()</code>.
  */
 public class CircularChess implements EntryPoint, MoveListener {
+	private static final int pollRate = 1000;
 	private static final int refreshRate = 25;
 	private static final int canvasWidth = 600;
 	private static final int canvasHeight = 600;
@@ -28,6 +29,7 @@ public class CircularChess implements EntryPoint, MoveListener {
 	private Canvas canvas;
 	private Context2d ctx;
 	private Game game;
+	private NetworkManager networkManager;
 
 	public void onModuleLoad() {
 		game = new Game();
@@ -60,6 +62,9 @@ public class CircularChess implements EntryPoint, MoveListener {
 		};
 		timer.scheduleRepeating(refreshRate);
 
+		networkManager = new NetworkManager(game);
+		networkManager.scheduleRepeating(pollRate);
+			
 	}
 
 	int mode = 0;
@@ -106,6 +111,7 @@ public class CircularChess implements EntryPoint, MoveListener {
 								target[1]);
 						if (game.isLegal(m)) {
 							game.move(m);
+							networkManager.sendMove(m);
 						} else {
 							log("Invalid Move");
 							selected[0] = selected[1] = -1;
