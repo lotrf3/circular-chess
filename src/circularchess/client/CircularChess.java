@@ -17,7 +17,7 @@ import com.google.gwt.user.client.ui.RootPanel;
 /**
  * Entry point classes define <code>onModuleLoad()</code>.
  */
-public class CircularChess implements EntryPoint {
+public class CircularChess implements EntryPoint, MoveListener {
 	private static final int refreshRate = 25;
 	private static final int canvasWidth = 600;
 	private static final int canvasHeight = 600;
@@ -67,7 +67,7 @@ public class CircularChess implements EntryPoint {
 	int mouseX, mouseY;
 
 	public void initHandlers() {
-
+		game.setMoveListener(this);
 		canvas.addMouseDownHandler(new MouseDownHandler() {
 			public void onMouseDown(MouseDownEvent event) {
 				mouseX = event.getRelativeX(canvas.getElement());
@@ -105,7 +105,6 @@ public class CircularChess implements EntryPoint {
 						Move m = new Move(selected[0], selected[1], target[0],
 								target[1]);
 						if (game.isLegal(m)) {
-							log(m.toString());
 							game.move(m);
 						} else {
 							log("Invalid Move");
@@ -197,6 +196,11 @@ public class CircularChess implements EntryPoint {
 		while ((coords[0] + 1) * CELL_ANGLE < theta)
 			coords[0]++;
 		return coords;
+	}
+
+	@Override
+	public void onMove(Move move) {
+		log(move.toString());
 	}
 
 }

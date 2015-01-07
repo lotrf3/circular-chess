@@ -146,7 +146,13 @@ public class Game {
 		}
 		return sb.toString();
 	}
-	public void move(Move move) {
+	
+	public void move(Move move){
+		move(move, true);
+	}
+	
+	
+	private void move(Move move, boolean permanent) {
 		history.push(move);
 		Piece dest = board[move.endRow][move.endCol];
 		Piece src = board[move.startRow][move.startCol];
@@ -173,6 +179,8 @@ public class Game {
 			halfMoves++;
 		if(halfMoves == 50)
 			result = Result.FIFTY_MOVE_RULE;
+		if(permanent)
+			moveListener.onMove(move);
 	}
 	
 	public void unmove(){
@@ -197,7 +205,7 @@ public class Game {
 		Move best = null;
 		double max = Double.NEGATIVE_INFINITY;
 		for(Move m : allLegalMoves()){
-			move(m);
+			move(m, false);
 			double score = -negaMax(2);
 			unmove();
 			if(score > max){
@@ -215,7 +223,7 @@ public class Game {
 		double max = Double.NEGATIVE_INFINITY;
 		for(Move m : allPseudoLegalMoves()){
 			//log(depth + ":" + m.toString());
-			move(m);
+			move(m, false);
 			double score = -negaMax(depth-1);
 			//log("pre: " +printBoard()());
 			unmove();
@@ -231,7 +239,7 @@ public class Game {
 double alphaBeta( double alpha, double beta, int depthleft, Map<Double, Move> moves) {
 	if(depthleft == 0) return quiesce( alpha, beta );
 	for (Move m : allLegalMoves()) {
-		move(m);
+		move(m, false);
 		double score = -alphaBeta( -beta, -alpha, depthleft - 1, null);
 		if(moves != null)
 			moves.put(score,m);
@@ -253,7 +261,7 @@ double quiesce(double alpha, double beta) {
  
     for(Move m : allLegalMoves())  {
     	if(board[m.endRow][m.endCol] != null){
-	        move(m);
+	        move(m, false);
 	        double score = -quiesce(-beta, -alpha);
 	        unmove();
 	 
@@ -346,7 +354,7 @@ double quiesce(double alpha, double beta) {
 		Set<Move> temp = new HashSet<Move>();
 		while(it.hasNext()){
 			Move m = it.next();
-			move(m);
+			move(m, false);
 			if(canKingBeCaptured(temp))
 				it.remove();
 			unmove();
@@ -407,5 +415,10 @@ double quiesce(double alpha, double beta) {
 			}
 		}
 		return validMoves;
+	}
+	
+	MoveListener moveListener;
+	public void setMoveListener(MoveListener listener){
+		moveListener = listener;
 	}
 }
