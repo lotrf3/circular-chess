@@ -1,11 +1,6 @@
 package circularchess.shared;
 
 import java.util.*;
-import java.lang.*;
-import java.io.*;
-import java.io.IOException;
-import java.io.InputStreamReader;
-
 
 
 public class Game {
@@ -41,6 +36,18 @@ public class Game {
 				return 0;
 			else
 				return Double.NaN;
+		}
+		
+		public double rating() throws Exception{
+
+			if(result == "1-0")
+				return 1;
+			else if (result == "0-1")
+				return 0;
+			else if (result == "1/2-1/2")
+				return 0.5;
+			else
+				throw new Exception();
 		}
 	}
 	
@@ -420,5 +427,23 @@ double quiesce(double alpha, double beta) {
 	MoveListener moveListener;
 	public void setMoveListener(MoveListener listener){
 		moveListener = listener;
+	}
+	
+	private void adjustRating(Player p, double result, double ro, int gp){
+		double K = 20;
+		if(p.gamesPlayed < 30)
+			K = 50;
+		else if(gp < 30)
+			K = 10;
+		p.rating += K * (result - 1/(1 + Math.pow(10, ((p.rating - ro)/400))));
+	}
+	
+	public void adjustRatings(Player w, Player b) throws Exception{
+		double rw = w.rating,
+				rb = b.rating;
+		adjustRating(w, result.rating(), rb, b.gamesPlayed);
+		adjustRating(b, 1-result.rating(), rw, w.gamesPlayed);
+		w.gamesPlayed++;
+		b.gamesPlayed++;
 	}
 }
