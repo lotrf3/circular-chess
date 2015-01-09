@@ -10,14 +10,16 @@ import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.dom.client.ImageElement;
 import com.google.gwt.event.dom.client.*;
 import com.google.gwt.user.client.Timer;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.PopupPanel;
 import com.google.gwt.user.client.ui.RootPanel;
 
 /**
  * Entry point classes define <code>onModuleLoad()</code>.
  */
-public class CircularChess implements EntryPoint, MoveListener {
+public class CircularChess implements EntryPoint, MoveListener, StartListener{
 	private static final int pollRate = 1000;
 	private static final int refreshRate = 25;
 	private static final int canvasWidth = 600;
@@ -25,6 +27,7 @@ public class CircularChess implements EntryPoint, MoveListener {
 	private static final double RING_WIDTH = 50;
 	private static final double INNER_RADIUS = 100;
 	private static final double CELL_ANGLE = 2 * Math.PI / 16;
+	private boolean online = false;
 	private HashMap<String, Image> images;
 	private Canvas canvas;
 	private Context2d ctx;
@@ -62,9 +65,14 @@ public class CircularChess implements EntryPoint, MoveListener {
 		};
 		timer.scheduleRepeating(refreshRate);
 
-		networkManager = new NetworkManager(game);
-		networkManager.scheduleRepeating(pollRate);
-			
+		 final MainPopup popup = new MainPopup(game, this);
+	        popup.setPopupPositionAndShow(new PopupPanel.PositionCallback() {
+	          public void setPosition(int offsetWidth, int offsetHeight) {
+	            int left = (Window.getClientWidth() - offsetWidth) / 3;
+	            int top = (Window.getClientHeight() - offsetHeight) / 3;
+	            popup.setPopupPosition(left, top);
+	          }
+	        });		
 	}
 
 	int mode = 0;
@@ -110,8 +118,17 @@ public class CircularChess implements EntryPoint, MoveListener {
 						Move m = new Move(selected[0], selected[1], target[0],
 								target[1]);
 						if (game.isLegal(m)) {
-							game.move(m);
-							networkManager.sendMove(m);
+							if(online){
+								if((game.whiteToMove && game.whiteAuth)
+										|| (!game.whiteToMove && game.blackAuth)){
+									game.move(m);
+									networkManager.sendMove(m);
+								}
+								else
+									log("Move your own pieces.");
+							}
+							else
+								game.move(m);								
 						} else {
 							log("Invalid Move");
 							selected[0] = selected[1] = -1;
@@ -207,6 +224,21 @@ public class CircularChess implements EntryPoint, MoveListener {
 	@Override
 	public void onMove(Move move) {
 		log(move.toString());
+	}
+
+	@Override
+	public void onStart(boolean whiteHuman, boolean blackHuman,
+			boolean whiteAuth, boolean blackAuth, String id) {
+		game.whiteHuman = whiteHuman;
+		game.blackHuman = blackHuman;
+		game.whiteAuth = whiteAuth;
+		game.blackAuth = blackAuth;
+		online = !(whiteAuth && blackAuth);
+		if(online){
+			networkManager = new NetworkManager(game, id);	
+			networkManager.scheduleRepeating(pollRate);
+		}
+		game.start();
 	}
 
 }

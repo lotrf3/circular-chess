@@ -2,7 +2,12 @@ package circularchess.shared;
 
 import java.util.*;
 
+import com.googlecode.objectify.annotation.Entity;
+import com.googlecode.objectify.annotation.Id;
+import com.googlecode.objectify.annotation.Ignore;
+import com.googlecode.objectify.annotation.Serialize;
 
+@Entity
 public class Game {
 	public enum Result {
 		ONGOING("*", "Ongoing"),
@@ -51,16 +56,22 @@ public class Game {
 		}
 	}
 	
-	
+	@Id
+	public String id;
 	HashMap<String, Integer> repetitions;
-	boolean whiteHuman = true, blackHuman = true;
+	public boolean whiteHuman = true;
+	public boolean blackHuman = true;
 	public Stack<Move> history;
+	@Serialize
 	public Piece[][] board;
 	public boolean whiteToMove = true;
 	int halfMoves;
 	int moves;
+	public boolean whiteAuth;
+	public boolean blackAuth;
 	Result result;
 	public Game(){
+		whiteAuth = blackAuth = true;
 		history = new Stack<Move>();
 		board = new Piece[][]{
 			{
@@ -158,6 +169,16 @@ public class Game {
 		move(move, true);
 	}
 	
+	private void aiMove(){
+		if((whiteToMove && !whiteHuman)
+				|| !whiteToMove && !blackHuman)
+			move(bestMove());
+	}
+	
+	public void start(){
+		aiMove();
+	}
+	
 	
 	private void move(Move move, boolean permanent) {
 		history.push(move);
@@ -186,8 +207,11 @@ public class Game {
 			halfMoves++;
 		if(halfMoves == 50)
 			result = Result.FIFTY_MOVE_RULE;
-		if(permanent)
-			moveListener.onMove(move);
+		if(permanent){
+			if(moveListener != null)
+				moveListener.onMove(move);
+			aiMove();
+		}
 	}
 	
 	public void unmove(){
@@ -242,44 +266,44 @@ public class Game {
 	}
 	
 	
-	
-double alphaBeta( double alpha, double beta, int depthleft, Map<Double, Move> moves) {
-	if(depthleft == 0) return quiesce( alpha, beta );
-	for (Move m : allLegalMoves()) {
-		move(m, false);
-		double score = -alphaBeta( -beta, -alpha, depthleft - 1, null);
-		if(moves != null)
-			moves.put(score,m);
-		unmove();
-		if( score >= beta )
-			return beta;   //  fail hard beta-cutoff
-		if( score > alpha )
-			alpha = score; // alpha acts like max in MiniMax
+		
+	double alphaBeta( double alpha, double beta, int depthleft, Map<Double, Move> moves) {
+		if(depthleft == 0) return quiesce( alpha, beta );
+		for (Move m : allLegalMoves()) {
+			move(m, false);
+			double score = -alphaBeta( -beta, -alpha, depthleft - 1, null);
+			if(moves != null)
+				moves.put(score,m);
+			unmove();
+			if( score >= beta )
+				return beta;   //  fail hard beta-cutoff
+			if( score > alpha )
+				alpha = score; // alpha acts like max in MiniMax
+		}
+		return alpha;
 	}
-	return alpha;
-}
 
-double quiesce(double alpha, double beta) {
-    double stand_pat = evaluate();
-    if( stand_pat >= beta )
-        return beta;
-    if( alpha < stand_pat )
-        alpha = stand_pat;
- 
-    for(Move m : allLegalMoves())  {
-    	if(board[m.endRow][m.endCol] != null){
-	        move(m, false);
-	        double score = -quiesce(-beta, -alpha);
-	        unmove();
+	double quiesce(double alpha, double beta) {
+	    double stand_pat = evaluate();
+	    if( stand_pat >= beta )
+	        return beta;
+	    if( alpha < stand_pat )
+	        alpha = stand_pat;
 	 
-	        if( score >= beta )
-	            return beta;
-	        if( score > alpha )
-	           alpha = score;
-    	}
-    }
-    return alpha;
-}
+	    for(Move m : allLegalMoves())  {
+	    	if(board[m.endRow][m.endCol] != null){
+		        move(m, false);
+		        double score = -quiesce(-beta, -alpha);
+		        unmove();
+		 
+		        if( score >= beta )
+		            return beta;
+		        if( score > alpha )
+		           alpha = score;
+	    	}
+	    }
+	    return alpha;
+	}
 	
 	public double evaluate(){
 		if(result != Result.ONGOING)
@@ -423,7 +447,7 @@ double quiesce(double alpha, double beta) {
 		}
 		return validMoves;
 	}
-	
+	@Ignore
 	MoveListener moveListener;
 	public void setMoveListener(MoveListener listener){
 		moveListener = listener;

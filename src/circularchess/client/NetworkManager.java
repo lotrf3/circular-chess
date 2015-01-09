@@ -10,9 +10,10 @@ import circularchess.shared.Move;
 public class NetworkManager extends Timer {
 	
 	Game game;
-	public NetworkManager(Game game){
+	String id;
+	public NetworkManager(Game game, String id){
 		this.game = game;
-		
+		this.id = id;
 	}
 
 	ChessServiceAsync service;
@@ -26,10 +27,11 @@ public class NetworkManager extends Timer {
 		      }
 
 		      public void onSuccess(Move move) {
-		    	  game.move(move);
+		    	  if(move != null)
+		    		  game.move(move);
 		      }
 		    };
-		service.getMove("",game.history.size(),callback);
+		service.getMove(id,game.history.size(),callback);
 	}
 	
 	public void sendMove(Move move){
@@ -43,6 +45,6 @@ public class NetworkManager extends Timer {
 		      public void onSuccess(Void move) {
 		      }
 		    };
-		service.sendMove("", move,callback);
+		service.sendMove(id, move,callback);
 	}
 }

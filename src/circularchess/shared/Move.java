@@ -4,11 +4,14 @@ import java.io.Serializable;
 
 public class Move implements Serializable {
 	// data available from parsing
-	int startRow, startCol, endRow, endCol;
-	Piece.Type promotion;
+	public int startRow;
+	public int startCol;
+	public int endRow;
+	public int endCol;
+	public Piece.Type promotion;
 	// metadata
-	Piece captures;
-	int halfMoves;
+	public Piece captures;
+	public int halfMoves;
 
 	public static Move parse(String move) {
 		String[] proms = move.split("=");
