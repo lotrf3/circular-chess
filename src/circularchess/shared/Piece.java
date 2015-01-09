@@ -2,8 +2,9 @@ package circularchess.shared;
 
 import java.io.Serializable;
 
-
 public class Piece implements Serializable {
+
+	private static final long serialVersionUID = -863457807648943094L;
 
 	public enum Type {
 		KING('K', 1000), QUEEN('Q', 9), ROOK('R', 5), KNIGHT('N', 3), BISHOP(
@@ -28,6 +29,7 @@ public class Piece implements Serializable {
 	public Type type;
 	public boolean white;
 
+	@SuppressWarnings("unused")
 	private Piece() {
 	}
 

@@ -3,6 +3,7 @@ package circularchess.shared;
 import java.io.Serializable;
 
 public class Move implements Serializable {
+	private static final long serialVersionUID = 8720050413266102000L;
 	// data available from parsing
 	public int startRow;
 	public int startCol;
@@ -34,6 +35,7 @@ public class Move implements Serializable {
 		return m;
 	}
 
+	@SuppressWarnings("unused")
 	private Move() {
 	}
 

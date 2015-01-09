@@ -7,8 +7,6 @@ import circularchess.shared.Move;
 
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import com.googlecode.objectify.ObjectifyService;
-import com.googlecode.objectify.annotation.Entity;
-import com.googlecode.objectify.annotation.Id;
 
 /**
  * The server-side implementation of the RPC service.
@@ -23,11 +21,11 @@ public class ChessServiceImpl extends RemoteServiceServlet implements
 	@Override
 	public void sendMove(String id, Move move) throws IllegalArgumentException {
 		Game game = ofy().load().type(Game.class).id(id).now();
-		if(game == null){
+		if (game == null) {
 			game = new Game();
 			game.id = id;
 		}
-		if(game.isLegal(move))
+		if (game.isLegal(move))
 			game.move(move);
 		else
 			throw new IllegalArgumentException();
@@ -37,7 +35,7 @@ public class ChessServiceImpl extends RemoteServiceServlet implements
 	@Override
 	public Move getMove(String id, int halfMove) {
 		Game game = ofy().load().type(Game.class).id(id).now();
-		if(game != null && halfMove < game.history.size())
+		if (game != null && halfMove < game.history.size())
 			return game.history.get(halfMove);
 		else
 			return null;

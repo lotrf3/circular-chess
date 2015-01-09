@@ -11,5 +11,6 @@ import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
 @RemoteServiceRelativePath("greet")
 public interface ChessService extends RemoteService {
 	void sendMove(String id, Move move) throws IllegalArgumentException;
+
 	Move getMove(String id, int halfMove);
 }

@@ -6,17 +6,14 @@ import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.PopupPanel;
 import com.google.gwt.user.client.ui.VerticalPanel;
 
 public class MainPopup extends PopupPanel {
 	Game game;
-	private StartListener callback;
 	public MainPopup(final Game game, final StartListener callback) {
 		super(false, true);
 		this.game = game;
-		this.callback = callback;
 		
 		VerticalPanel panel = new VerticalPanel();
 		Button onePlayer = new Button("1-player", new ClickHandler() {
