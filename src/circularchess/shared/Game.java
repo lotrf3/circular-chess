@@ -407,8 +407,8 @@ public class Game {
 					validPawnMoves(row, col, row+r, col-1, validMoves);
 				if(col < 3 && board[row+r][col+1] != null && board[row+r][col+1].white != a.white)
 					validPawnMoves(row, col, row+r, col+1, validMoves);
-				if(((a.white && (row == 1 || row == 14))
-					|| (!a.white && (row == 6 || row == 9)))
+				if(((a.white && ((row == 1 && board[2][col] == null) || (row == 14 && board[13][col] == null)))
+					|| (!a.white && ((row == 6 && board[5][col] == null) || (row == 9 && board[10][col] == null))))
 					&&(board[row + 2*r][col] == null))
 						validMoves.add(new Move(row, col, row + 2*r, col));
 						
