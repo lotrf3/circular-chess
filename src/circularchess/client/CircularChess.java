@@ -28,7 +28,7 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 	private static final double INNER_RADIUS = 100;
 	private static final double CELL_ANGLE = 2 * Math.PI / 16;
 	private boolean online = false;
-	private HashMap<String, Image> images;
+	private final HashMap<String, Image> images = new HashMap<String, Image>();
 	private Canvas canvas;
 	private Context2d ctx;
 	private Game game;
@@ -37,12 +37,19 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 	public void onModuleLoad() {
 		game = new Game();
 		selected = new int[] { -1, -1 };
-		images = new HashMap<String, Image>();
+		Image img;
 		for (Piece.Type type : Piece.Type.values()) {
 			String key = type.toString();
-			images.put(key, new Image("images/white-" + key + ".svg"));
-			key = key.toLowerCase();
-			images.put(key, new Image("images/black-" + key + ".svg"));
+			String lowerKey = key.toLowerCase();
+			img = new Image("images/white-" + lowerKey + ".svg");
+			images.put(key, img);
+			img.setVisible(false);
+			RootPanel.get().add(img);
+			
+			img = new Image("images/black-" + lowerKey + ".svg");
+			images.put(lowerKey, img);
+			img.setVisible(false);
+			RootPanel.get().add(img);
 		}
 		canvas = Canvas.createIfSupported();
 		canvas.setWidth(canvasWidth + "px");
@@ -187,19 +194,19 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 				double midRad = INNER_RADIUS + (j + 0.5) * RING_WIDTH;
 				Piece p = game.board[i][j];
 				if (p != null) {
-					ImageElement img = (ImageElement) images.get(p.toString())
-							.getElement().cast();
+					Image img = images.get(p.toString());
+					ImageElement imgElem = (ImageElement) img.getElement().cast();
 					if (i == selected[0] && j == selected[1] && mode == 1) {
-						ctx.drawImage(img, mouseX - img.getWidth() / 2.0
-								- canvasWidth / 2.0, mouseY - img.getHeight()
+						ctx.drawImage(imgElem, mouseX - imgElem.getWidth() / 2.0
+								- canvasWidth / 2.0, mouseY - imgElem.getHeight()
 								/ 2.0 - canvasHeight / 2.0);
 					} else {
 						ctx.drawImage(
-								img,
+								imgElem,
 								Math.cos((i + 0.5) * CELL_ANGLE) * midRad
-										- img.getWidth() / 2.0,
+										- imgElem.getWidth() / 2.0,
 								Math.sin((i + 0.5) * CELL_ANGLE) * midRad
-										- img.getHeight() / 2.0);
+										- imgElem.getHeight() / 2.0);
 					}
 				}
 			}
