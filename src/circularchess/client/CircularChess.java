@@ -118,9 +118,17 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 							|| (!game.whiteToMove
 									&& (target[0] == 0 || target[0] == 15) && selected[0]
 									+ r == target[0]))) {
-						RootPanel.get().add(
-								new PromotedPicker(images, game, selected,
-										target));
+						
+						final PromotedPopup popup = new PromotedPopup(images, game, selected,
+								target);
+						popup.setPopupPositionAndShow(new PopupPanel.PositionCallback() {
+							public void setPosition(int offsetWidth, int offsetHeight) {
+								int left = (Window.getClientWidth() - offsetWidth) / 3;
+								int top = (Window.getClientHeight() - offsetHeight) / 3;
+								popup.setPopupPosition(left, top);
+							}
+						});
+								
 					} else {
 						Move m = new Move(selected[0], selected[1], target[0],
 								target[1]);

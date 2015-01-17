@@ -8,15 +8,16 @@ import circularchess.shared.Piece;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Image;
+import com.google.gwt.user.client.ui.PopupPanel;
 
-public class PromotedPicker extends Composite {
-	public PromotedPicker(HashMap<String, Image> images, final Game game,
-			final int[] selected, final int[] target) {
-		// Place the check above the text box using a vertical panel.
+public class PromotedPopup extends PopupPanel {
+	public PromotedPopup(HashMap<String, Image> images, final Game game, final int[] selected, final int[] target) {
+		super(false, true);
 		HorizontalPanel panel = new HorizontalPanel();
+		
+		
 		Image q, r, n, b;
 		if (game.whiteToMove) {
 			q = images.get("Q");
@@ -35,6 +36,7 @@ public class PromotedPicker extends Composite {
 			public void onClick(ClickEvent event) {
 				game.move(new Move(selected[0], selected[1], target[0],
 						target[1], Piece.Type.QUEEN));
+				hide();
 			}
 		});
 		r.addClickHandler(new ClickHandler() {
@@ -42,6 +44,7 @@ public class PromotedPicker extends Composite {
 			public void onClick(ClickEvent event) {
 				game.move(new Move(selected[0], selected[1], target[0],
 						target[1], Piece.Type.ROOK));
+				hide();
 			}
 		});
 		n.addClickHandler(new ClickHandler() {
@@ -49,6 +52,7 @@ public class PromotedPicker extends Composite {
 			public void onClick(ClickEvent event) {
 				game.move(new Move(selected[0], selected[1], target[0],
 						target[1], Piece.Type.KNIGHT));
+				hide();
 			}
 		});
 		b.addClickHandler(new ClickHandler() {
@@ -56,16 +60,22 @@ public class PromotedPicker extends Composite {
 			public void onClick(ClickEvent event) {
 				game.move(new Move(selected[0], selected[1], target[0],
 						target[1], Piece.Type.BISHOP));
+				hide();
 			}
 		});
+		
 
+		q.setVisible(true);
+		r.setVisible(true);
+		n.setVisible(true);
+		b.setVisible(true);
+		
 		panel.add(q);
 		panel.add(r);
 		panel.add(n);
 		panel.add(b);
+		
+		setWidget(panel);
 
-		// All composites must call initWidget() in their constructors.
-		initWidget(panel);
 	}
-
 }
