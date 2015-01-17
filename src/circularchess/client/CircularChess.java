@@ -112,12 +112,12 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 					int[] target = getCoords(mouseX, mouseY);
 					int r = (selected[0] / 8) * 2 - 1;
 					if (p.type == Piece.Type.PAWN
-							&& (game.whiteToMove
+							&& ((game.whiteToMove
 									&& (target[0] == 7 || target[0] == 8) && selected[0]
 									- r == target[0])
 							|| (!game.whiteToMove
 									&& (target[0] == 0 || target[0] == 15) && selected[0]
-									+ r == target[0])) {
+									+ r == target[0]))) {
 						RootPanel.get().add(
 								new PromotedPicker(images, game, selected,
 										target));
