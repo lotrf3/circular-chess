@@ -69,7 +69,7 @@ public class Game {
 	int moves;
 	public boolean whiteAuth;
 	public boolean blackAuth;
-	Result result;
+	public Result result;
 	public Game(){
 		whiteAuth = blackAuth = true;
 		history = new Stack<Move>();
@@ -197,9 +197,11 @@ public class Game {
 		Integer reps = repetitions.get(key);
 		if(reps == null)
 			repetitions.put(key, 1);
-		else if(reps == 2)
+		else if(reps >= 2)
+		{
+			repetitions.put(key,3);
 			result = Result.THREEFOLD_REPETITION;
-		else
+		}else
 			repetitions.put(key, reps + 1);
 		if(dest != null || src.type.equals(Piece.Type.PAWN))
 			halfMoves = 0;
@@ -217,7 +219,11 @@ public class Game {
 	public void unmove(){
 		Move move = history.pop();
 		String key = toFENNoMove().toString();
-		repetitions.put(key, repetitions.get(key)-1);
+		int reps =  repetitions.get(key)-1;
+		if(reps > 0)
+			repetitions.put(key, reps);
+		else
+			repetitions.remove(key);
 		
 		board[move.startRow][move.startCol] = board[move.endRow][move.endCol];
 		if(move.captures != null)
@@ -227,6 +233,7 @@ public class Game {
 		if(move.promotion != null)
 			board[move.startRow][move.startCol].type = Piece.Type.PAWN;
 		halfMoves = move.halfMoves;
+		result = Result.ONGOING;
 		if(whiteToMove)
 			moves--;
 		whiteToMove = !whiteToMove;

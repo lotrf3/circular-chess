@@ -229,6 +229,16 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 	@Override
 	public void onMove(Move move) {
 		log(move.toString());
+		if(game.result != Game.Result.ONGOING){
+			final ResultPopup popup = new ResultPopup(game);
+			popup.setPopupPositionAndShow(new PopupPanel.PositionCallback() {
+				public void setPosition(int offsetWidth, int offsetHeight) {
+					int left = (Window.getClientWidth() - offsetWidth) / 3;
+					int top = (Window.getClientHeight() - offsetHeight) / 3;
+					popup.setPopupPosition(left, top);
+				}
+			});
+		}
 	}
 
 	@Override
