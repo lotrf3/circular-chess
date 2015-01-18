@@ -13,6 +13,7 @@ public class Move implements Serializable {
 	// metadata
 	public Piece captures;
 	public int halfMoves;
+	public String algNot;
 
 	public static Move parse(String move) {
 		String[] proms = move.split("=");
@@ -83,12 +84,14 @@ public class Move implements Serializable {
 	}
 
 	public String toString() {
+		return algNot;
+		/*
 		String str = String.valueOf((char) (startCol + 'a'))
 				+ Integer.toString(startRow + 1) + "-"
 				+ String.valueOf((char) (endCol + 'a'))
 				+ Integer.toString(endRow + 1);
 		if (promotion != null)
 			str += "=" + promotion.toString();
-		return str;
+		return str;*/
 	}
 }

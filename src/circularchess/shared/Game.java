@@ -179,6 +179,14 @@ public class Game {
 		aiMove();
 	}
 	
+	public boolean attemptMove(Move m){
+		if(isLegal(m)){
+			move(m, true);
+			return true;
+		}
+		else
+			return false;
+	}
 	
 	private void move(Move move, boolean permanent) {
 		history.push(move);
@@ -327,14 +335,21 @@ public class Game {
 	}
 
 	public boolean isLegal(Move m) {
-		return legalMoves(m.startRow, m.startCol, new HashSet<Move>()).contains(m);
+		if(isPseudoLegal(m))
+		{
+			move(m, false);
+			boolean isLegal = !canKingBeCaptured(new HashSet<Move>());
+			unmove();
+			return isLegal;
+		}
+		return false;
 	}
 	
 	private Set<Move> allPseudoLegalMoves(){
 		Set<Move> moves = new HashSet<Move>();
 		for(int i=0; i<16; i++)
 			for(int j=0; j<4; j++)
-				pseudoLegalMoves(i,j,moves);
+				pseudoLegalMoves(i,j,moves, null);
 		return moves;
 	}
 	
@@ -343,20 +358,20 @@ public class Game {
 		Set<Move> moves = new HashSet<Move>();
 		for(int i=0; i<16; i++)
 			for(int j=0; j<4; j++)
-				legalMoves(i,j,moves);
+				legalMoves(i,j,moves, null);
 		return moves;
 	}
 	
-	private void validPawnMoves(int startRow, int startCol, int endRow, int endCol, Set<Move> moves){
+	private void validPawnMoves(int startRow, int startCol, int endRow, int endCol, Set<Move> moves, Map<String, List<Move>> algNot){
 		if((whiteToMove && (endRow == 7 || endRow == 8))
 			|| (!whiteToMove && (endRow == 0 || endRow == 15))){
-			moves.add(new Move(startRow, startCol, endRow, endCol, Piece.Type.QUEEN));
-			moves.add(new Move(startRow, startCol, endRow, endCol, Piece.Type.ROOK));
-			moves.add(new Move(startRow, startCol, endRow, endCol, Piece.Type.KNIGHT));
-			moves.add(new Move(startRow, startCol, endRow, endCol, Piece.Type.BISHOP));
+			addMove(new Move(startRow, startCol, endRow, endCol, Piece.Type.QUEEN),moves,algNot);
+			addMove(new Move(startRow, startCol, endRow, endCol, Piece.Type.ROOK),moves,algNot);
+			addMove(new Move(startRow, startCol, endRow, endCol, Piece.Type.KNIGHT),moves,algNot);
+			addMove(new Move(startRow, startCol, endRow, endCol, Piece.Type.BISHOP),moves,algNot);
 		}
 		else
-			moves.add(new Move(startRow, startCol, endRow, endCol));
+			addMove(new Move(startRow, startCol, endRow, endCol),moves,algNot);
 	}
 	
 	private void log(String str){
@@ -375,7 +390,7 @@ public class Game {
 	private boolean canKingBeCaptured(Set<Move> moves){
 		for(int i=0; i<16; i++)
 			for(int j=0; j<4; j++){
-				pseudoLegalMoves(i,j,moves);
+				pseudoLegalMoves(i,j,moves, null);
 				for(Move m : moves){
 					Piece p = board[m.endRow][m.endCol];
 					if(p != null && p.type == Piece.Type.KING)
@@ -386,8 +401,8 @@ public class Game {
 
 	}
 	
-	private Set<Move> legalMoves(int row, int col, Set<Move> moves){
-		pseudoLegalMoves(row, col, moves);
+	private Set<Move> legalMoves(int row, int col, Set<Move> moves, HashMap<String, List<Move>> algNot){
+		pseudoLegalMoves(row, col, moves, algNot);
 		Iterator<Move> it = moves.iterator();
 		Set<Move> temp = new HashSet<Move>();
 		while(it.hasNext()){
@@ -401,7 +416,176 @@ public class Game {
 		return moves;
 	}
 	
-	private Set<Move> pseudoLegalMoves(int row, int col, Set<Move> validMoves) {
+	
+	private void addMove(Move m, Set<Move> validMoves, Map<String,List<Move>> algNot){
+		validMoves.add(m);
+		if(algNot != null){
+			List<Move> reps = algNot.get(m.algNot);
+			if(reps == null){
+				reps = new ArrayList<Move>();
+				algNot.put(m.algNot,reps);
+			}
+			reps.add(m);
+		}
+	}
+	
+	private String getAlgNotFile(int col){
+		return String.valueOf((char)(col + 'a'));
+	}
+	private String getAlgNotRank(int row){
+		 return String.valueOf(row + 1);
+	}
+
+	private boolean isPseudoLegal(Move m){
+		StringBuilder algNot = new StringBuilder();
+		boolean isLegal = false;
+		Piece src = board[m.startRow][m.startCol];
+		Piece dest = board[m.endRow][m.endCol];
+		if(src.white != whiteToMove)
+			return false;
+		
+		//nobody can self-capture
+		if(dest != null && dest.white == src.white)
+			return false;
+		
+		//nobody can null-move
+		if(dest == src)
+			return false;
+
+		int rowDiff = Math.abs(m.startRow - m.endRow);
+		int colDiff = Math.abs(m.startCol - m.endCol);
+		boolean fileReq = false,
+				rankReq = false;
+		if(src.type == Piece.Type.PAWN){
+			//ensure promotion when required
+			if(m.promotion == null){
+				if(src.white && (m.endRow == 7 || m.endRow == 8)
+							|| (!src.white&& (m.endRow == 0 || m.endRow == 15)))
+				return false;
+			} else //ensure no promotion when not required
+				if(!(src.white && (m.endRow == 7 || m.endRow == 8)
+							|| (!src.white&& (m.endRow == 0 || m.endRow == 15))))
+					return false;
+			
+			
+			int r = (m.startRow/8) * 2 - 1;
+			if(src.white)
+				r*=-1;
+			if(dest != null){//if capturing
+				if(Math.abs(m.startCol - m.endCol) == 1
+					&& m.startRow + r == m.endRow){
+
+					algNot.append(getAlgNotFile(m.startCol));
+					algNot.append('x');
+					algNot.append(getAlgNotFile(m.endCol)); 
+					algNot.append(getAlgNotRank(m.endRow));
+					isLegal = true;
+				}
+					
+			}
+			else //not capturing
+			{
+				if(m.startCol == m.endCol)//ensure same file
+				{
+					algNot.append(getAlgNotFile(m.endCol)); 
+					algNot.append(getAlgNotRank(m.endRow));
+					if(m.startRow + r == m.endRow)
+						isLegal = true;
+					else if(((src.white && ((m.startRow == 1 && board[2][m.startCol] == null) || (m.startRow == 14 && board[13][m.startCol] == null)))
+								|| (!src.white && ((m.startRow == 6 && board[5][m.startCol] == null) || (m.startRow == 9 && board[10][m.startCol] == null))))
+								&&(m.startRow + 2*r == m.endRow))
+						isLegal = true;
+				}
+			}
+			if(m.promotion != null){
+				algNot.append('=');
+				algNot.append(m.promotion.toString().toUpperCase());
+			}
+			
+		} else if(src.type == Piece.Type.KNIGHT){
+			for(int i=0; i<8; i++)
+			{
+				int x = (((i+1)%4)/2+1) * ((i/4)*-2+1);
+				int y = (((i+7)%4)/2+1) * ((((i+6)%8)/4)*-2+1);
+				int r = (m.endRow + x + 16) % 16;
+				int c = m.endCol + y;
+				if(c >= 0 && c < 4){
+					if(src == board[r][c])
+						isLegal = true;
+					else if (board[r][c] != null
+							&& board[r][c].type == Piece.Type.KNIGHT
+							&& board[r][c].white == src.white)
+					{
+						if(c != m.startCol)
+							fileReq = true;
+						else if(r != m.startRow)
+							rankReq = true; 
+					}
+						
+						
+				}
+			}
+			algNot.append(src.toString().toUpperCase());
+			if(fileReq)
+				algNot.append(getAlgNotFile(m.startCol));
+			if(rankReq)
+				algNot.append(getAlgNotRank(m.startRow));
+			if(dest != null)
+				algNot.append('x');
+			algNot.append(getAlgNotFile(m.endCol));
+			algNot.append(getAlgNotRank(m.endRow));
+			
+		} else if (src.type == Piece.Type.KING){
+			if(rowDiff <= 1 && colDiff <= 1){
+				algNot.append(src.toString().toUpperCase());
+				if(dest != null)
+					algNot.append('x');
+				algNot.append(getAlgNotFile(m.endCol)); 
+				algNot.append(getAlgNotRank(m.endRow));
+				isLegal = true;
+			}
+				
+		} else {
+			for (int i = -1; i <= 1; i++)
+				for (int j = -1; j <= 1; j++)
+					if(!(i == 0 && j == 0)
+						&& (!src.type.equals(Piece.Type.BISHOP) || (i+j+2)%2==0)
+						&& (!src.type.equals(Piece.Type.ROOK) || (i+j+2)%2==1)) {
+						for (int k = 1; k <= 16; k++) {
+							int r = (m.endRow + i * k + 16) % 16;
+							int c = m.endCol + j * k;
+							if (c < 0 || c >= 4) break;
+							if(m.startRow == r && m.startCol == c){
+								isLegal = true;
+								break;
+							}
+							else if(board[r][c] != null) {
+								if(board[r][c].type == src.type
+										&& board[r][c].white == src.white){
+									if(c != m.startCol)
+										fileReq = true;
+									else if(r != m.startRow)
+										rankReq = true; 
+								}
+								break;
+							}
+						}
+					}
+			algNot.append(src.toString().toUpperCase());
+			if(fileReq)
+				algNot.append(getAlgNotFile(m.startCol));
+			if(rankReq)
+				algNot.append(getAlgNotRank(m.startRow));
+			if(dest != null)
+				algNot.append('x');
+			algNot.append(getAlgNotFile(m.endCol));
+			algNot.append(getAlgNotRank(m.endRow));
+		}
+		m.algNot = algNot.toString();
+		return isLegal;
+	}
+	
+	private Set<Move> pseudoLegalMoves(int row, int col, Set<Move> validMoves, Map<String, List<Move>> algNot) {
 		Piece a = board[row][col];
 		if(a != null && a.white == whiteToMove) {
 			if(a.type.equals(Piece.Type.PAWN)){
@@ -409,15 +593,15 @@ public class Game {
 				if(a.white)
 					r*=-1;
 				if(board[row + r][col] == null)
-					validPawnMoves(row, col, row + r, col, validMoves);
+					validPawnMoves(row, col, row + r, col, validMoves,algNot);
 				if(col > 0 && board[row+r][col-1] != null && board[row+r][col-1].white != a.white)
-					validPawnMoves(row, col, row+r, col-1, validMoves);
+					validPawnMoves(row, col, row+r, col-1, validMoves,algNot);
 				if(col < 3 && board[row+r][col+1] != null && board[row+r][col+1].white != a.white)
-					validPawnMoves(row, col, row+r, col+1, validMoves);
+					validPawnMoves(row, col, row+r, col+1, validMoves,algNot);
 				if(((a.white && ((row == 1 && board[2][col] == null) || (row == 14 && board[13][col] == null)))
 					|| (!a.white && ((row == 6 && board[5][col] == null) || (row == 9 && board[10][col] == null))))
 					&&(board[row + 2*r][col] == null))
-						validMoves.add(new Move(row, col, row + 2*r, col));
+						addMove(new Move(row, col, row + 2*r, col),validMoves,algNot);
 						
 			}
 			else if(a.type.equals(Piece.Type.KNIGHT)) {
@@ -428,7 +612,7 @@ public class Game {
 					int c = col + y;
 					if(c >= 0 && c < 4
 						&& (board[r][c] == null || board[r][c].white != a.white))
-						validMoves.add(new Move(row, col, r, c));
+						addMove(new Move(row, col, r, c),validMoves,algNot);
 				}
 			} else {
 				int range;
@@ -446,7 +630,7 @@ public class Game {
 								if (c < 0 || c >= 4) break;
 									Piece b = board[r][c];
 								if (b != null && b.white == a.white) break;
-									validMoves.add(new Move(row, col, r, c));
+									addMove(new Move(row, col, r, c),validMoves,algNot);
 								if (b != null) break;
 							}
 						}

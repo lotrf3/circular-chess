@@ -34,7 +34,7 @@ public class PromotedPopup extends PopupPanel {
 		q.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
-				game.move(new Move(selected[0], selected[1], target[0],
+				game.attemptMove(new Move(selected[0], selected[1], target[0],
 						target[1], Piece.Type.QUEEN));
 				hide();
 			}
@@ -42,7 +42,7 @@ public class PromotedPopup extends PopupPanel {
 		r.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
-				game.move(new Move(selected[0], selected[1], target[0],
+				game.attemptMove(new Move(selected[0], selected[1], target[0],
 						target[1], Piece.Type.ROOK));
 				hide();
 			}
@@ -50,7 +50,7 @@ public class PromotedPopup extends PopupPanel {
 		n.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
-				game.move(new Move(selected[0], selected[1], target[0],
+				game.attemptMove(new Move(selected[0], selected[1], target[0],
 						target[1], Piece.Type.KNIGHT));
 				hide();
 			}
@@ -58,7 +58,7 @@ public class PromotedPopup extends PopupPanel {
 		b.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
-				game.move(new Move(selected[0], selected[1], target[0],
+				game.attemptMove(new Move(selected[0], selected[1], target[0],
 						target[1], Piece.Type.BISHOP));
 				hide();
 			}
