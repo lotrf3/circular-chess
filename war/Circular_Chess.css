@@ -20,6 +20,11 @@ h1 {
   width: 400px;
 }
 
+canvas {
+  outline: none;
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0); /* mobile webkit */
+}
+
 .dialogVPanel {
   margin: 5px;
 }
