@@ -179,13 +179,17 @@ public class Game {
 		aiMove();
 	}
 	
-	public boolean attemptMove(Move m){
-		if(isLegal(m)){
-			move(m, true);
-			return true;
+	public void attemptMove(Move move){
+		if(isLegal(move)){
+			if (!((whiteToMove && whiteAuth)
+				|| (!whiteToMove && blackAuth)))
+				if(moveListener != null)
+					moveListener.onIllegalMove(move);
+			move(move, true);
 		}
 		else
-			return false;
+			if(moveListener != null)
+				moveListener.onIllegalMove(move);
 	}
 	
 	private void move(Move move, boolean permanent) {

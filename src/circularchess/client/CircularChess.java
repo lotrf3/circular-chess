@@ -9,6 +9,7 @@ import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.dom.client.ImageElement;
 import com.google.gwt.event.dom.client.*;
+import com.google.gwt.media.client.Audio;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.FlexTable;
@@ -36,6 +37,7 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 	private Game game;
 	private NetworkManager networkManager;
 	private FlexTable moveText;
+	private Audio illegalMoveAudio, moveAudio, gameOverAudio;
 
 	public void onModuleLoad() {
 		game = new Game();
@@ -72,6 +74,13 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 		panel.add(moveText);
 		RootPanel.get().add(panel);
 
+	    illegalMoveAudio = Audio.createIfSupported();
+	    illegalMoveAudio.setSrc("audio/illegal-move.mp3");
+	    moveAudio = Audio.createIfSupported();
+	    moveAudio.setSrc("audio/move.mp3");
+	    gameOverAudio = Audio.createIfSupported();
+	    gameOverAudio.setSrc("audio/game-over.mp3");		
+		
 		initHandlers();
 
 		// setup timer
@@ -142,20 +151,8 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 					} else {
 						Move m = new Move(selected[0], selected[1], target[0],
 								target[1]);
-						if (game.isLegal(m)) {
-							if (online) {
-								if ((game.whiteToMove && game.whiteAuth)
-										|| (!game.whiteToMove && game.blackAuth)) {
-									game.move(m);
-									networkManager.sendMove(m);
-								} else
-									log("Move your own pieces.");
-							} else
-								game.move(m);
-						} else {
-							log("Invalid Move");
-							selected[0] = selected[1] = -1;
-						}
+						game.attemptMove(m);
+						selected[0] = selected[1] = -1;
 					}
 				}
 			}
@@ -246,16 +243,19 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 
 	@Override
 	public void onMove(Move move) {
+		if(online)
+			networkManager.sendMove(move);
 		if(game.whiteToMove){
-			moveText.setText(game.moves,2, move.toString());
+			moveText.setText(game.moves, 2, move.toString());
 		}
 		else{
-			moveText.setText(game.moves,0, game.moves + ".");
-			moveText.setText(game.moves,1, move.toString());
+			moveText.setText(game.moves, 0, game.moves + ".");
+			moveText.setText(game.moves, 1, move.toString());
 		}
 		
-		//log(move.toString());
 		if(game.result != Game.Result.ONGOING){
+			gameOverAudio.load();
+			gameOverAudio.play();
 			final ResultPopup popup = new ResultPopup(game);
 			popup.setPopupPositionAndShow(new PopupPanel.PositionCallback() {
 				public void setPosition(int offsetWidth, int offsetHeight) {
@@ -265,6 +265,16 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 				}
 			});
 		}
+		else{
+			moveAudio.load();
+			moveAudio.play();
+		}
+	}
+	
+	@Override
+	public void onIllegalMove(Move move) {
+		illegalMoveAudio.load();
+		illegalMoveAudio.play();
 	}
 
 	@Override
@@ -281,5 +291,6 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 		}
 		game.start();
 	}
+
 
 }
