@@ -66,7 +66,7 @@ public class Game {
 	public Piece[][] board;
 	public boolean whiteToMove = true;
 	int halfMoves;
-	int moves;
+	public int moves;
 	public boolean whiteAuth;
 	public boolean blackAuth;
 	public Result result;
@@ -198,7 +198,7 @@ public class Game {
 		if(move.promotion != null)
 			board[move.endRow][move.endCol].type = move.promotion;
 		board[move.startRow][move.startCol] = null;
-		if(!whiteToMove)
+		if(whiteToMove)
 			moves++;
 		whiteToMove = !whiteToMove;
 		String key = toFENNoMove().toString();
@@ -242,7 +242,7 @@ public class Game {
 			board[move.startRow][move.startCol].type = Piece.Type.PAWN;
 		halfMoves = move.halfMoves;
 		result = Result.ONGOING;
-		if(whiteToMove)
+		if(!whiteToMove)
 			moves--;
 		whiteToMove = !whiteToMove;
 	}

@@ -11,6 +11,8 @@ import com.google.gwt.dom.client.ImageElement;
 import com.google.gwt.event.dom.client.*;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.ui.FlexTable;
+import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.PopupPanel;
@@ -33,6 +35,7 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 	private Context2d ctx;
 	private Game game;
 	private NetworkManager networkManager;
+	private FlexTable moveText;
 
 	public void onModuleLoad() {
 		game = new Game();
@@ -60,7 +63,14 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 
 		ctx = canvas.getContext2d();
 		ctx.translate(canvasWidth / 2.0, canvasHeight / 2.0);
-		RootPanel.get().add(canvas);
+		
+		HorizontalPanel panel = new HorizontalPanel();
+		panel.add(canvas);
+		
+		moveText = new FlexTable();
+		moveText.addStyleName("moveText");
+		panel.add(moveText);
+		RootPanel.get().add(panel);
 
 		initHandlers();
 
@@ -236,7 +246,15 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 
 	@Override
 	public void onMove(Move move) {
-		log(move.toString());
+		if(game.whiteToMove){
+			moveText.setText(game.moves,2, move.toString());
+		}
+		else{
+			moveText.setText(game.moves,0, game.moves + ".");
+			moveText.setText(game.moves,1, move.toString());
+		}
+		
+		//log(move.toString());
 		if(game.result != Game.Result.ONGOING){
 			final ResultPopup popup = new ResultPopup(game);
 			popup.setPopupPositionAndShow(new PopupPanel.PositionCallback() {
