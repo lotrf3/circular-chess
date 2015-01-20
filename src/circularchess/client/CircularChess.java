@@ -34,14 +34,12 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 	private final HashMap<String, Image> images = new HashMap<String, Image>();
 	private Canvas canvas;
 	private Context2d ctx;
-	private Game game;
+	Game game;
 	private NetworkManager networkManager;
 	private FlexTable moveText;
 	private Audio illegalMoveAudio, moveAudio, gameOverAudio;
 
 	public void onModuleLoad() {
-		game = new Game();
-		selected = new int[] { -1, -1 };
 		Image img;
 		for (Piece.Type type : Piece.Type.values()) {
 			String key = type.toString();
@@ -68,11 +66,13 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 		
 		HorizontalPanel panel = new HorizontalPanel();
 		panel.add(canvas);
-		
+
 		moveText = new FlexTable();
 		moveText.addStyleName("moveText");
 		panel.add(moveText);
 		RootPanel.get().add(panel);
+		
+		newGame();
 
 	    illegalMoveAudio = Audio.createIfSupported();
 	    illegalMoveAudio.setSrc("audio/illegal-move.mp3");
@@ -91,14 +91,6 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 		};
 		timer.scheduleRepeating(refreshRate);
 
-		final MainPopup popup = new MainPopup(game, this);
-		popup.setPopupPositionAndShow(new PopupPanel.PositionCallback() {
-			public void setPosition(int offsetWidth, int offsetHeight) {
-				int left = (Window.getClientWidth() - offsetWidth) / 3;
-				int top = (Window.getClientHeight() - offsetHeight) / 3;
-				popup.setPopupPosition(left, top);
-			}
-		});
 	}
 
 	int mode = 0;
@@ -106,7 +98,6 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 	int mouseX, mouseY;
 
 	public void initHandlers() {
-		game.setMoveListener(this);
 		canvas.addMouseDownHandler(new MouseDownHandler() {
 			public void onMouseDown(MouseDownEvent event) {
 				mouseX = event.getRelativeX(canvas.getElement());
@@ -256,7 +247,7 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 		if(game.result != Game.Result.ONGOING){
 			gameOverAudio.load();
 			gameOverAudio.play();
-			final ResultPopup popup = new ResultPopup(game);
+			final ResultPopup popup = new ResultPopup(this);
 			popup.setPopupPositionAndShow(new PopupPanel.PositionCallback() {
 				public void setPosition(int offsetWidth, int offsetHeight) {
 					int left = (Window.getClientWidth() - offsetWidth) / 3;
@@ -269,6 +260,22 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 			moveAudio.load();
 			moveAudio.play();
 		}
+	}
+	
+	public void newGame(){
+		game = new Game();
+		selected = new int[] { -1, -1 };
+		moveText.removeAllRows();
+		game.setMoveListener(this);
+
+		final MainPopup popup = new MainPopup(game, this);
+		popup.setPopupPositionAndShow(new PopupPanel.PositionCallback() {
+			public void setPosition(int offsetWidth, int offsetHeight) {
+				int left = (Window.getClientWidth() - offsetWidth) / 3;
+				int top = (Window.getClientHeight() - offsetHeight) / 3;
+				popup.setPopupPosition(left, top);
+			}
+		});
 	}
 	
 	@Override
@@ -286,7 +293,7 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 		game.blackAuth = blackAuth;
 		online = !(whiteAuth && blackAuth);
 		if (online) {
-			networkManager = new NetworkManager(game, id);
+			networkManager = new NetworkManager(this, id);
 			networkManager.scheduleRepeating(pollRate);
 		}
 		game.start();

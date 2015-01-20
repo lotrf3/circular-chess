@@ -4,15 +4,14 @@ import com.google.gwt.core.client.GWT;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
-import circularchess.shared.Game;
 import circularchess.shared.Move;
 
 public class NetworkManager extends Timer {
 	
-	Game game;
+	CircularChess chess;
 	String id;
-	public NetworkManager(Game game, String id){
-		this.game = game;
+	public NetworkManager(CircularChess chess, String id){
+		this.chess = chess;
 		this.id = id;
 	}
 
@@ -28,10 +27,10 @@ public class NetworkManager extends Timer {
 
 		      public void onSuccess(Move move) {
 		    	  if(move != null)
-		    		  game.move(move);
+		    		  chess.game.move(move);
 		      }
 		    };
-		service.getMove(id,game.history.size(),callback);
+		service.getMove(id,chess.game.history.size(),callback);
 	}
 	
 	public void sendMove(Move move){
