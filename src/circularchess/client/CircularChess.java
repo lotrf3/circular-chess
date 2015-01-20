@@ -150,7 +150,7 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 		});
 	}
 
-	private void log(String str) {
+	public void log(String str) {
 		RootPanel.get().add(new Label(str));
 	}
 

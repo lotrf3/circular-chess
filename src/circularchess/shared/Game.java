@@ -1,8 +1,6 @@
 package circularchess.shared;
 
-import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.regex.Pattern;
 
 import com.google.gwt.i18n.shared.DateTimeFormat;
 import com.google.gwt.regexp.shared.MatchResult;
