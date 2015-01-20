@@ -1,7 +1,12 @@
 package circularchess.shared;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.regex.Pattern;
 
+import com.google.gwt.i18n.shared.DateTimeFormat;
+import com.google.gwt.regexp.shared.MatchResult;
+import com.google.gwt.regexp.shared.RegExp;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Ignore;
@@ -69,8 +74,10 @@ public class Game {
 	public int moves;
 	public boolean whiteAuth;
 	public boolean blackAuth;
+	public Date date;
 	public Result result;
 	public Game(){
+		date = new Date();
 		whiteAuth = blackAuth = true;
 		history = new Stack<Move>();
 		board = new Piece[][]{
@@ -664,5 +671,97 @@ public class Game {
 		adjustRating(b, 1-result.rating(), rw, w.gamesPlayed);
 		w.gamesPlayed++;
 		b.gamesPlayed++;
+	}
+	
+	
+	
+	public static Game parsePGN(String pgn){
+		Game game = new Game();
+		String[] lines = pgn.split("\\n");
+		DateTimeFormat df = DateTimeFormat.getFormat("yyyy.MM.dd");
+		int i=0;
+		for(;i<lines.length; i++){
+			RegExp regex = RegExp.compile("\\[(.*) \"(.*)\"\\]");
+			MatchResult res = regex.exec(lines[i]);
+			if(res != null){
+				String key = res.getGroup(0);
+				String value = res.getGroup(1);
+				switch(key){
+				case "Date":
+					game.date = df.parse(value); break;
+				case "White":
+					game.whiteHuman = value == "Computer" ? false : true; break;
+				case "Black":
+					game.blackHuman = value == "Computer" ? false : true; break;
+				case "Termination":
+					for(Result r : Result.values())
+						if(r.type == value){
+							game.result = r;
+							break;
+						}
+					break;
+				}
+			}
+			else
+			{
+				String[] movesStr = lines[i].replaceAll("\\d+\\.", " ").split("\\s+");
+				for(int j=0; j<movesStr.length; j++)
+				{
+					if(game.result == Result.ONGOING)
+					{
+						//FIXME: SUPER inefficient here 
+						Set<Move> moves = game.allLegalMoves();
+						for(Move m : moves)
+						{
+							game.isLegal(m);//adds algNot
+							if(m.algNot == movesStr[j]){
+								game.move(m);
+								break;
+							}
+						}
+					}
+					else
+						break;
+				}
+			}
+		}
+		return game;
+	}
+	
+	private void toPGNTag(StringBuilder sb, String key, String value){
+		sb.append('[')
+			.append(key)
+			.append(" \"")
+			.append(value)
+			.append("\"]\n");
+	}
+	
+	public String toPGN(){
+		StringBuilder sb = new StringBuilder();
+		toPGNTag(sb,"Event","Live Chess");
+		toPGNTag(sb,"Site","circular-chess.appspot.com");
+		DateTimeFormat df = DateTimeFormat.getFormat("yyyy.MM.dd");
+		toPGNTag(sb,"Round","1");
+		toPGNTag(sb,"Date",df.format(date));
+		
+		toPGNTag(sb,"White",whiteHuman ? "Human" : "Computer");
+		toPGNTag(sb,"Black",blackHuman ? "Human" : "Computer");
+		toPGNTag(sb,"Result", result.result);
+		toPGNTag(sb,"Termination",result.type);
+		
+		Iterator<Move> it = history.iterator();
+		for(int i=1; it.hasNext(); i++){
+			if(i % 10 == 1)
+				sb.append('\n');
+			sb.append(i)
+				.append('.')
+				.append(it.next().toString())
+				.append(' ');
+			if(it.hasNext())
+				sb.append(it.next())
+				.append(' ');
+		}
+		sb.append(result.result);
+		return sb.toString();
 	}
 }
