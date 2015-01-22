@@ -16,7 +16,7 @@ public class MainPopup extends PopupPanel {
 		this.game = game;
 		
 		VerticalPanel panel = new VerticalPanel();
-		Button onePlayer = new Button("1-player", new ClickHandler() {
+		Button onePlayer = new Button("vs. Computer", new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
 		        final OnePlayerPopup popup = new OnePlayerPopup(game, callback);

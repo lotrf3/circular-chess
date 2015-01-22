@@ -190,10 +190,12 @@ public class Game {
 	public void attemptMove(Move move){
 		if(isLegal(move)){
 			if (!((whiteToMove && whiteAuth)
-				|| (!whiteToMove && blackAuth)))
+				|| (!whiteToMove && blackAuth))){
 				if(moveListener != null)
 					moveListener.onIllegalMove(move);
-			move(move, true);
+			}
+			else
+				move(move, true);
 		}
 		else
 			if(moveListener != null)
