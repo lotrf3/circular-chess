@@ -176,8 +176,11 @@ public class Game {
 	
 	private void aiMove(){
 		if((whiteToMove && !whiteHuman)
-				|| !whiteToMove && !blackHuman)
-			move(bestMove());
+				|| !whiteToMove && !blackHuman){
+			Move m = bestMove();
+			isPseudoLegal(m);//Adds algebraic notation
+			move(m);
+		}
 	}
 	
 	public void start(){
