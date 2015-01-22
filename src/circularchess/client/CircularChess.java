@@ -38,6 +38,7 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 	private NetworkManager networkManager;
 	private FlexTable moveText;
 	private Audio illegalMoveAudio, moveAudio, gameOverAudio;
+	private int boardOrientation = 4;
 
 	public void onModuleLoad() {
 		Image img;
@@ -209,9 +210,9 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 					} else {
 						ctx.drawImage(
 								imgElem,
-								Math.cos((i + 0.5) * CELL_ANGLE) * midRad
+								Math.cos((i + boardOrientation + 0.5) * CELL_ANGLE) * midRad
 										- imgElem.getWidth() / 2.0,
-								Math.sin((i + 0.5) * CELL_ANGLE) * midRad
+								Math.sin((i + boardOrientation + 0.5) * CELL_ANGLE) * midRad
 										- imgElem.getHeight() / 2.0);
 					}
 				}
@@ -225,10 +226,10 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 		int[] coords = { -1, -1 };
 		double theta = (Math.atan2(y, x) + 2 * Math.PI) % (2 * Math.PI);
 		double radius = Math.sqrt(x * x + y * y);
-		while ((coords[1] + 1) * RING_WIDTH + INNER_RADIUS < radius)
-			coords[1]++;
-		while ((coords[0] + 1) * CELL_ANGLE < theta)
-			coords[0]++;
+		if(radius < INNER_RADIUS || radius > INNER_RADIUS + 4*RING_WIDTH)
+			return coords;
+		coords[1] = (int) ((radius - INNER_RADIUS)/RING_WIDTH);
+		coords[0] = (((int) (theta/CELL_ANGLE)) - boardOrientation + 16) % 16;
 		return coords;
 	}
 
@@ -287,6 +288,10 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 	@Override
 	public void onStart(boolean whiteHuman, boolean blackHuman,
 			boolean whiteAuth, boolean blackAuth, String id) {
+		if(!whiteHuman || !whiteAuth)
+			boardOrientation = 12;
+		else
+			boardOrientation = 4;
 		game.whiteHuman = whiteHuman;
 		game.blackHuman = blackHuman;
 		game.whiteAuth = whiteAuth;
