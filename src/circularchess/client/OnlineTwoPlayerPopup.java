@@ -62,7 +62,6 @@ public class OnlineTwoPlayerPopup extends PopupPanel implements ValueChangeHandl
 			sum += Integer.parseInt(str.substring(i,i+1), 36);
 		}
 		String check = Integer.toString(sum % 36,36);
-		RootPanel.get().add(new Label(check + "  "+ sum));
 		return check + str;
 	}
 	private int parseCode(){
@@ -74,7 +73,6 @@ public class OnlineTwoPlayerPopup extends PopupPanel implements ValueChangeHandl
 			sum += Integer.parseInt(str.substring(i,i+1), 36);
 		}
 		sum = sum % 36;
-		RootPanel.get().add(new Label(checkSum + "  "+ sum));
 		if(sum != checkSum)
 			return -1;
 		else
