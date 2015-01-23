@@ -14,6 +14,7 @@ public class Move implements Serializable {
 	public Piece captures;
 	public int halfMoves;
 	public String algNot;
+	public boolean check, checkmate;
 
 	public static Move parse(String move) {
 		String[] proms = move.split("=");

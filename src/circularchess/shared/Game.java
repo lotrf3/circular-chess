@@ -245,7 +245,7 @@ public class Game {
 		if(halfMoves == 50)
 			result = Result.FIFTY_MOVE_RULE;
 		if(permanent){
-			calculateCheckmate();
+			calculateCheckmate(move);
 			if(moveListener != null)
 				moveListener.onMove(move);
 			aiMove();
@@ -477,8 +477,11 @@ public class Game {
 		System.out.println(str);
 	}
 	
-	private void calculateCheckmate(){
-		boolean isInCheck = canKingBeCaptured(whiteToMove);
+	private void calculateCheckmate(Move move){
+		move.check = canKingBeCaptured(whiteToMove);
+		String oldAlgNot = move.algNot;
+		if(move.check)
+			move.algNot+="+";
 		Set<Move> moves = allPseudoLegalMoves();
 		for(Move m : moves){
 			move(m, false);
@@ -488,11 +491,17 @@ public class Game {
 			}
 			unmove();
 		}
-		if(isInCheck)
-			if(!whiteToMove)
+		if(move.check)
+			if(!whiteToMove){
+				move.algNot = oldAlgNot + "#";
+				move.checkmate = true;
 				result = Result.WHITE_CHECKMATE;
-			else
+			}
+			else{
+				move.algNot = oldAlgNot + "#";
+				move.checkmate = true;
 				result = Result.BLACK_CHECKMATE;
+			}
 		else
 			result = Result.STALEMATE;
 	}
