@@ -552,9 +552,6 @@ public class Game {
 		//nobody can null-move
 		if(dest == src)
 			return false;
-
-		int rowDiff = Math.abs(m.startRow - m.endRow);
-		int colDiff = Math.abs(m.startCol - m.endCol);
 		boolean fileReq = false,
 				rankReq = false;
 		if(src.type == Piece.Type.PAWN){
@@ -637,7 +634,10 @@ public class Game {
 			algNot.append(getAlgNotRank(m.endRow));
 			
 		} else if (src.type == Piece.Type.KING){
-			if(rowDiff <= 1 && colDiff <= 1){
+			int rowDiff = Math.abs(m.endRow-m.startRow);
+			if(rowDiff == 15)
+				rowDiff = 1;
+			if(rowDiff <= 1 && Math.abs(m.endCol-m.startCol) <= 1){
 				algNot.append(src.toString().toUpperCase());
 				if(dest != null)
 					algNot.append('x');
