@@ -18,6 +18,7 @@ import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.PopupPanel;
 import com.google.gwt.user.client.ui.RootPanel;
+import com.google.gwt.user.client.ui.VerticalPanel;
 
 /**
  * Entry point classes define <code>onModuleLoad()</code>.
@@ -39,6 +40,7 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 	private FlexTable moveText;
 	private Audio illegalMoveAudio, moveAudio, gameOverAudio;
 	private int boardOrientation = 4;
+	public VerticalPanel whiteLost, blackLost;
 
 	public void onModuleLoad() {
 		Image img;
@@ -71,6 +73,12 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 		moveText = new FlexTable();
 		moveText.addStyleName("moveText");
 		panel.add(moveText);
+		
+		whiteLost = new VerticalPanel();
+		panel.add(whiteLost);
+		blackLost = new VerticalPanel();
+		panel.add(blackLost);
+				
 		RootPanel.get().add(panel);
 		
 		newGame();
@@ -244,6 +252,12 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 			moveText.setText(game.moves, 0, game.moves + ".");
 			moveText.setText(game.moves, 1, move.toString());
 		}
+		if(move.captures != null){
+			if(move.captures.white)
+				whiteLost.add(createImage(move.captures.toString().charAt(0)));
+			else
+				blackLost.add(createImage(move.captures.toString().charAt(0)));
+		}
 		
 		if(game.result != Game.Result.ONGOING){
 			gameOverAudio.load();
@@ -304,5 +318,22 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 		game.start();
 	}
 
+	public Image createImage(char c){
+		switch(c){
+		case 'K': return new Image("images/white-k.svg");
+		case 'Q': return new Image("images/white-q.svg");
+		case 'R': return new Image("images/white-r.svg");
+		case 'B': return new Image("images/white-b.svg");
+		case 'N': return new Image("images/white-n.svg");
+		case 'P': return new Image("images/white-p.svg");
+		case 'k': return new Image("images/black-k.svg");
+		case 'q': return new Image("images/black-q.svg");
+		case 'r': return new Image("images/black-r.svg");
+		case 'b': return new Image("images/black-b.svg");
+		case 'n': return new Image("images/black-n.svg");
+		case 'p': return new Image("images/black-p.svg");
+		}
+		return null;
+	}
 
 }
