@@ -282,6 +282,8 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 		selected = new int[] { -1, -1 };
 		moveText.removeAllRows();
 		game.setMoveListener(this);
+		whiteLost.clear();
+		blackLost.clear();
 
 		final MainPopup popup = new MainPopup(game, this);
 		popup.setPopupPositionAndShow(new PopupPanel.PositionCallback() {
