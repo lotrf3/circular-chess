@@ -72,12 +72,15 @@ public class Game {
 	public int moves;
 	public boolean whiteAuth;
 	public boolean blackAuth;
+	private int[] whiteKing, blackKing;
 	public Date date;
 	public Result result;
 	public Game(){
 		date = new Date();
 		whiteAuth = blackAuth = true;
 		history = new Stack<Move>();
+		whiteKing = new int[]{15,0};
+		blackKing = new int[]{8,0};
 		board = new Piece[][]{
 			{
 				new Piece(Piece.Type.QUEEN, true), new Piece(Piece.Type.BISHOP, true), new Piece(Piece.Type.KNIGHT, true), new Piece(Piece.Type.ROOK, true)
@@ -212,6 +215,16 @@ public class Game {
 		if(move.promotion != null)
 			board[move.endRow][move.endCol].type = move.promotion;
 		board[move.startRow][move.startCol] = null;
+		if(src.type == Piece.Type.KING){
+			if(src.white){
+				whiteKing[0] = move.endRow;
+				whiteKing[1] = move.endCol;
+			}
+			else{
+				blackKing[0] = move.endRow;
+				blackKing[1] = move.endCol;
+			}
+		}
 		if(whiteToMove)
 			moves++;
 		whiteToMove = !whiteToMove;
@@ -232,6 +245,7 @@ public class Game {
 		if(halfMoves == 50)
 			result = Result.FIFTY_MOVE_RULE;
 		if(permanent){
+			calculateCheckmate();
 			if(moveListener != null)
 				moveListener.onMove(move);
 			aiMove();
@@ -256,6 +270,17 @@ public class Game {
 			board[move.startRow][move.startCol].type = Piece.Type.PAWN;
 		halfMoves = move.halfMoves;
 		result = Result.ONGOING;
+		if(board[move.startRow][move.startCol].type == Piece.Type.KING){
+			if(board[move.startRow][move.startCol].white)
+			{
+				whiteKing[0] = move.startRow;
+				whiteKing[1] = move.startCol;
+			}
+			else{
+				blackKing[0] = move.startRow;
+				blackKing[1] = move.startCol;
+			}
+		}
 		if(!whiteToMove)
 			moves--;
 		whiteToMove = !whiteToMove;
@@ -352,10 +377,70 @@ public class Game {
 		if(isPseudoLegal(m))
 		{
 			move(m, false);
-			boolean isLegal = !canKingBeCaptured(new HashSet<Move>());
+			boolean isLegal = !canKingBeCaptured(!whiteToMove);
 			unmove();
 			return isLegal;
 		}
+		return false;
+	}
+	
+	public boolean isUnderAttack(int row, int col, boolean attackerColor){
+		Piece src;
+		for(int i=-1; i<=1; i+=2){
+			int d = (row/8) * 2 - 1;
+			if(attackerColor)
+				d*=-1;
+			int r = (row - d + 16) % 16;
+			int c = col + i;
+			if(c >= 0 && c < 4){
+				src = board[r][c];
+				if(src != null
+						&& src.type == Piece.Type.PAWN
+						&& src.white == attackerColor)
+					return true;
+			}
+		}
+		for(int i=0; i<8; i++)
+		{
+			int x = (((i+1)%4)/2+1) * ((i/4)*-2+1);
+			int y = (((i+7)%4)/2+1) * ((((i+6)%8)/4)*-2+1);
+			int r = (row + x + 16) % 16;
+			int c = col + y;
+			if(c >= 0 && c < 4){
+				src = board[r][c];
+				if(src != null
+						&& src.type == Piece.Type.KNIGHT
+						&& src.white == attackerColor)
+					return true;
+			}
+		}
+		for (int i = -1; i <= 1; i++)
+			for (int j = -1; j <= 1; j++)
+				if(!(i == 0 && j == 0)) {
+					for (int k = 1; k <= 16; k++) {
+						int r = (row + i * k + 16) % 16;
+						int c = col + j * k;
+						if (c < 0 || c >= 4) break;
+						src = board[r][c];
+						if(src != null){
+							if(src.white == attackerColor)
+							{
+								if((src.type == Piece.Type.BISHOP
+										|| src.type == Piece.Type.QUEEN
+										|| (src.type == Piece.Type.KING && k == 1))
+											&& (i+j+2)%2==0)
+									return true;
+
+								if((src.type == Piece.Type.ROOK
+										|| src.type == Piece.Type.QUEEN
+										|| (src.type == Piece.Type.KING && k == 1))
+											&& (i+j+2)%2==1)
+									return true;
+							}
+							break;
+						}
+					}
+				}
 		return false;
 	}
 	
@@ -393,39 +478,41 @@ public class Game {
 	}
 	
 	private void calculateCheckmate(){
-		if(allLegalMoves().size() == 0)
+		boolean isInCheck = canKingBeCaptured(whiteToMove);
+		Set<Move> moves = allPseudoLegalMoves();
+		for(Move m : moves){
+			move(m, false);
+			if(!canKingBeCaptured(!whiteToMove)){
+				unmove();
+				return;
+			}
+			unmove();
+		}
+		if(isInCheck)
 			if(!whiteToMove)
 				result = Result.WHITE_CHECKMATE;
 			else
 				result = Result.BLACK_CHECKMATE;
-			
+		else
+			result = Result.STALEMATE;
 	}
 	
-	private boolean canKingBeCaptured(Set<Move> moves){
-		for(int i=0; i<16; i++)
-			for(int j=0; j<4; j++){
-				pseudoLegalMoves(i,j,moves, null);
-				for(Move m : moves){
-					Piece p = board[m.endRow][m.endCol];
-					if(p != null && p.type == Piece.Type.KING)
-						return true;
-				}
-			}
-		return false;
-
+	private boolean canKingBeCaptured(boolean white){
+		if(white)
+			return isUnderAttack(whiteKing[0],whiteKing[1],false);
+		else
+			return isUnderAttack(blackKing[0],blackKing[1],true);
 	}
 	
 	private Set<Move> legalMoves(int row, int col, Set<Move> moves, HashMap<String, List<Move>> algNot){
 		pseudoLegalMoves(row, col, moves, algNot);
 		Iterator<Move> it = moves.iterator();
-		Set<Move> temp = new HashSet<Move>();
 		while(it.hasNext()){
 			Move m = it.next();
 			move(m, false);
-			if(canKingBeCaptured(temp))
+			if(canKingBeCaptured(!whiteToMove))
 				it.remove();
 			unmove();
-			temp.clear();
 		}
 		return moves;
 	}

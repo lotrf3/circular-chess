@@ -269,6 +269,10 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 
 	@Override
 	public void onMove(Move move) {
+		if(game.isUnderAttack(move.endRow, move.endCol, !game.board[move.endRow][move.endCol].white))
+			log("true");
+		else
+			log("false");
 		if(online)
 			networkManager.sendMove(move);
 		if(game.whiteToMove){
