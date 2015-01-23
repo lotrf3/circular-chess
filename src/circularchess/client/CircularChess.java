@@ -7,11 +7,14 @@ import circularchess.shared.*;
 import com.google.gwt.canvas.client.Canvas;
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.core.client.EntryPoint;
+import com.google.gwt.core.client.Scheduler;
+import com.google.gwt.core.client.Scheduler.ScheduledCommand;
 import com.google.gwt.dom.client.ImageElement;
 import com.google.gwt.event.dom.client.*;
 import com.google.gwt.media.client.Audio;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Image;
@@ -43,6 +46,7 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 	public VerticalPanel whiteLost, blackLost;
 
 	public void onModuleLoad() {
+		HorizontalPanel panel = new HorizontalPanel();
 		Image img;
 		for (Piece.Type type : Piece.Type.values()) {
 			String key = type.toString();
@@ -57,6 +61,9 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 			img.setVisible(false);
 			RootPanel.get().add(img);
 		}
+		VerticalPanel vpanel = new VerticalPanel();
+		panel.add(vpanel);
+		
 		canvas = Canvas.createIfSupported();
 		canvas.setWidth(canvasWidth + "px");
 		canvas.setCoordinateSpaceWidth(canvasWidth);
@@ -66,9 +73,28 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 
 		ctx = canvas.getContext2d();
 		ctx.translate(canvasWidth / 2.0, canvasHeight / 2.0);
+		vpanel.add(canvas);
+
+		HorizontalPanel buttonPanel = new HorizontalPanel();
+		Button pgnButton = new Button("Show PGN", new ClickHandler() {
+			@Override
+			public void onClick(ClickEvent event) {
+				final TextPopup popup = new TextPopup(game.toPGN(),13);
+				showPopup(popup);
+			}
+		});
+		buttonPanel.add(pgnButton);
+
+		Button fenButton = new Button("Show FEN", new ClickHandler() {
+			@Override
+			public void onClick(ClickEvent event) {
+				final TextPopup popup = new TextPopup(game.toFEN(),1);
+				showPopup(popup);
+			}
+		});
+		buttonPanel.add(fenButton);
 		
-		HorizontalPanel panel = new HorizontalPanel();
-		panel.add(canvas);
+		vpanel.add(buttonPanel);
 
 		moveText = new FlexTable();
 		moveText.addStyleName("moveText");
@@ -336,6 +362,22 @@ public class CircularChess implements EntryPoint, MoveListener, StartListener {
 		case 'p': return new Image("images/black-p.svg");
 		}
 		return null;
+	}
+	
+	public void showPopup(final ShowPopupPanel popup){
+		popup.setPopupPositionAndShow(new PopupPanel.PositionCallback() {
+			public void setPosition(int offsetWidth, int offsetHeight) {
+				int left = (Window.getClientWidth() - offsetWidth) / 3;
+				int top = (Window.getClientHeight() - offsetHeight) / 3;
+				popup.setPopupPosition(left, top);
+			}
+		});
+		Scheduler.get().scheduleDeferred(new ScheduledCommand() {
+		    @Override
+		    public void execute() {
+		        popup.onShow();
+		    }
+		});
 	}
 
 }
